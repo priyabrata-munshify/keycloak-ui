@@ -135,6 +135,7 @@
     }
   },
   "configure": "Configure",
+  "organizations": "Organizations",
   "realmSettings": "Realm settings",
   "authentication": "Authentication",
   "identityProviders": "Identity providers",
