@@ -32,6 +32,7 @@
         <keycloak.version>19.0.2</keycloak.version>
 
         <admin-ui.path>../apps/admin-ui</admin-ui.path>
+        <admin-ui.theme.name>phasetwo.v2</admin-ui.theme.name>
     </properties>
 
     <licenses>
@@ -304,7 +305,7 @@
                             <goal>copy-resources</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>target/classes/theme/keycloak.v2/admin/resources</outputDirectory>
+                            <outputDirectory>target/classes/theme/${admin-ui.theme.name}/admin/resources</outputDirectory>
                             <resources>
                                 <resource>
                                     <directory>${admin-ui.path}/dist</directory>
@@ -340,8 +341,8 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <file>target/classes/theme/keycloak.v2/admin/resources/index.html</file>
-                    <outputFile>target/classes/theme/keycloak.v2/admin/index.ftl</outputFile>
+                    <file>target/classes/theme/${admin-ui.theme.name}/admin/resources/index.html</file>
+                    <outputFile>target/classes/theme/${admin-ui.theme.name}/admin/index.ftl</outputFile>
                     <regex>false</regex>
                     <replacements>
                         <replacement>

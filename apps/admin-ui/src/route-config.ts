@@ -11,6 +11,7 @@ import groupsRoutes from "./groups/routes";
 import identityProviders from "./identity-providers/routes";
 import { PageNotFoundSection } from "./PageNotFoundSection";
 import realmRoleRoutes from "./realm-roles/routes";
+import orgRoutes from "./orgs/routes";
 import realmSettingRoutes from "./realm-settings/routes";
 import realmRoutes from "./realm/routes";
 import sessionRoutes from "./sessions/routes";
@@ -39,6 +40,7 @@ export const routes: RouteDef[] = [
   ...identityProviders,
   ...realmRoleRoutes,
   ...realmRoutes,
+  ...orgRoutes,
   ...realmSettingRoutes,
   ...sessionRoutes,
   ...userFederationRoutes,

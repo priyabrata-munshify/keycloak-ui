@@ -107,6 +107,7 @@ export const PageNav: FunctionComponent = () => {
               <LeftNav title="realmRoles" path="/roles" />
               <LeftNav title="users" path="/users" />
               <LeftNav title="groups" path="/groups" />
+              <LeftNav title="organizations" path="/organizations" />
               <LeftNav title="sessions" path="/sessions" />
               <LeftNav title="events" path="/events" />
             </NavGroup>

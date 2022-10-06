@@ -57,6 +57,7 @@ const initOptions = async (
       "identity-providers-help",
       "dynamic",
       "overrides",
+      "orgs",
     ],
     interpolation: {
       escapeValue: false,

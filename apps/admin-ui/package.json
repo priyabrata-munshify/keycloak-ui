@@ -54,6 +54,7 @@
     "dagre": "^0.8.5",
     "file-saver": "^2.0.5",
     "flat": "^5.0.2",
+    "husky": "^8.0.1",
     "i18next": "^21.9.2",
     "i18next-http-backend": "^1.4.4",
     "keycloak-js": "999.0.0-dev",
@@ -68,7 +69,8 @@
     "react-router": "^5.3.4",
     "react-router-dom": "^5.3.4",
     "react-router-dom-v5-compat": "^6.4.0",
-    "use-react-router-breadcrumbs": "^2.0.2"
+    "use-react-router-breadcrumbs": "^2.0.2",
+    "wireit": "^0.7.2"
   },
   "devDependencies": {
     "@4tw/cypress-drag-drop": "^2.2.1",
@@ -95,6 +97,7 @@
     "cypress": "^10.9.0",
     "decompress": "^4.2.1",
     "del": "^7.0.0",
+    "eslint-plugin-react": "^7.31.8",
     "gunzip-maybe": "^1.4.2",
     "http2-proxy": "^5.0.53",
     "jsdom": "^20.0.1",
