@@ -170,9 +170,9 @@ export const Header = () => {
       logo={
         <Link to={toDashboard({ realm })}>
           <Brand
-            src={environment.resourceUrl + "/logo.svg"}
+            src={environment.resourceUrl + "/logo_phase_slash.svg"}
             id="masthead-logo"
-            alt="Logo"
+            alt="Phase Two"
             className="keycloak__pageheader_brand"
           />
         </Link>
