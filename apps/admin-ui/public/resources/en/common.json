@@ -79,6 +79,7 @@
   "allTypes": "All types",
   "home": "Home",
   "manage": "Manage",
+  "extensions": "Extensions",
   "clients": "Clients",
   "clientScopes": "Client scopes",
   "realmRoles": "Realm roles",

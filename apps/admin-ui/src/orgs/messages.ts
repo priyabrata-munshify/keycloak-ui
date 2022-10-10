@@ -33,7 +33,7 @@ export default {
     organizationPortalLink: "Organization Portal Link",
     organizationPortalHelpTitle: "Portal Link Usage",
     portalLinkHelp:
-      "Allow the organization administrator to set up their Identity Providers and self-manage their organization by creating a portal link. This link expires in one week.",
+      "Allow the organization administrator to set up their Identity Providers and self-manage their organization by creating a portal link. This link expires in one week. Note: Use of this link in this browser will log you out of your admin session, and log you into the portal as the organization administrator",
     removeRoleFromOrgFail: "Failed to remove role from org: ",
     deleteRole: "Delete Role",
     createRole: "Create Role",

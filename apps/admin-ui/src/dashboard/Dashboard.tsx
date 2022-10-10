@@ -50,8 +50,8 @@ const EmptyDashboard = () => {
     <PageSection variant="light">
       <EmptyState variant="large">
         <Brand
-          src={environment.resourceUrl + "/logo_phase_slash.svg"}
-          alt="Phase Two"
+          src={environment.resourceUrl + "/icon.svg"}
+          alt="Keycloak icon"
           className="keycloak__dashboard_icon"
         />
         <Title headingLevel="h4" size="3xl">

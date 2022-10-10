@@ -51,7 +51,24 @@ export default function useOrgFetcher(realm: string) {
     });
   }
 
+  /*
   async function fetchPostForm(url: string, data: FormData) {
+    const token = await adminClient.getAccessToken();
+    return await fetch(url, {
+      method: "POST",
+      mode: "cors",
+      cache: "no-cache",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization: `Bearer ${token}`,
+      },
+      body: data,
+      redirect: "follow",
+    });
+  }
+  */
+
+  async function fetchPostRaw(url: string, data: string) {
     const token = await adminClient.getAccessToken();
     return await fetch(url, {
       method: "POST",
@@ -197,12 +214,20 @@ export default function useOrgFetcher(realm: string) {
   }
 
   async function getPortalLink(orgId: string, userId: string = "") {
-    const fd = new FormData();
-    fd.append("userId", userId);
+    const details = {
+      userId: userId,
+    };
+    const formBody = [];
+    for (const property in details) {
+      const encodedKey = encodeURIComponent(property);
+      const encodedValue = encodeURIComponent(details[property]);
+      formBody.push(encodedKey + "=" + encodedValue);
+    }
+    const body = formBody.join("&");
 
-    const resp = await fetchPostForm(
+    const resp = await fetchPostRaw(
       `${baseUrl}/orgs/${orgId}/portal-link`,
-      fd
+      body
     );
 
     return await resp.json();
