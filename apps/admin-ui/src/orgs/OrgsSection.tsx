@@ -79,7 +79,7 @@ export default function OrgsSection() {
       <ViewHeader
         titleKey="orgs:orgList"
         subKey="orgs:orgExplain"
-        helpUrl={helpUrls.userFederationUrl}
+        helpUrl={helpUrls.orgsUrl}
       />
       <PageSection variant="light" className="pf-u-p-0">
         <KeycloakDataTable
