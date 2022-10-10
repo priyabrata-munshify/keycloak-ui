@@ -214,16 +214,7 @@ export default function useOrgFetcher(realm: string) {
   }
 
   async function getPortalLink(orgId: string, userId: string = "") {
-    const details = {
-      userId: userId,
-    };
-    const formBody = [];
-    for (const property in details) {
-      const encodedKey = encodeURIComponent(property);
-      const encodedValue = encodeURIComponent(details[property]);
-      formBody.push(encodedKey + "=" + encodedValue);
-    }
-    const body = formBody.join("&");
+    const body = "userId=" + encodeURIComponent(userId);
 
     const resp = await fetchPostRaw(
       `${baseUrl}/orgs/${orgId}/portal-link`,
