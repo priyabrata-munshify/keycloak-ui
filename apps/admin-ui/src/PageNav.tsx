@@ -87,6 +87,8 @@ export const PageNav: FunctionComponent = () => {
     "view-identity-providers"
   );
 
+  const showOrgs = hasSomeAccess("view-organizations", "manage-organizations");
+
   const isOnAddRealm = !!useRouteMatch(AddRealmRoute.path);
 
   return (
@@ -118,6 +120,14 @@ export const PageNav: FunctionComponent = () => {
               <LeftNav title="authentication" path="/authentication" />
               <LeftNav title="identityProviders" path="/identity-providers" />
               <LeftNav title="userFederation" path="/user-federation" />
+            </NavGroup>
+          )}
+
+          {!isOnAddRealm && (
+            <NavGroup aria-label={t("extensions")} title={t("extensions")}>
+              {showOrgs && (
+                <LeftNav title="organizations" path="/organizations" />
+              )}
             </NavGroup>
           )}
         </Nav>
