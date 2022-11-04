@@ -1,4 +1,5 @@
-import { FormEvent, FunctionComponent } from "react";
+import type { AccessType } from "@keycloak/keycloak-admin-client/lib/defs/whoAmIRepresentation";
+import { FormEvent, FunctionComponent, useState } from "react";
 import { NavLink, useRouteMatch } from "react-router-dom";
 import { useLocation, useNavigate } from "react-router-dom-v5-compat";
 import { useTranslation } from "react-i18next";
@@ -87,7 +88,12 @@ export const PageNav: FunctionComponent = () => {
     "view-identity-providers"
   );
 
-  const showOrgs = hasSomeAccess("view-organizations", "manage-organizations");
+  const [access, setAccess] = useState<readonly AccessType[]>([]);
+  const hasSomeAccessByString = (...types: string[]) => {
+    return types.some((type) => type === "anyone" || access.filter(a => a.toString() === type).length > 0);
+  };
+
+  const showOrgs = hasSomeAccessByString("view-organizations", "manage-organizations");
 
   const isOnAddRealm = !!useRouteMatch(AddRealmRoute.path);
 
