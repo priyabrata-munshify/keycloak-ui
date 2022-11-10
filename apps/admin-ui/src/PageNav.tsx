@@ -1,5 +1,5 @@
 import type { AccessType } from "@keycloak/keycloak-admin-client/lib/defs/whoAmIRepresentation";
-import { FormEvent, FunctionComponent, useState } from "react";
+import { FormEvent, FunctionComponent } from "react";
 import { NavLink, useRouteMatch } from "react-router-dom";
 import { useLocation, useNavigate } from "react-router-dom-v5-compat";
 import { useTranslation } from "react-i18next";
@@ -22,7 +22,7 @@ import "./page-nav.css";
 
 export const PageNav: FunctionComponent = () => {
   const { t } = useTranslation("common");
-  const { hasAccess, hasSomeAccess } = useAccess();
+  const { hasAccess, hasSomeAccess, hasSomeAccessByString } = useAccess();
   const { realm } = useRealm();
   const location = useLocation();
   const navigate = useNavigate();
@@ -87,11 +87,6 @@ export const PageNav: FunctionComponent = () => {
     "query-clients",
     "view-identity-providers"
   );
-
-  const [access, setAccess] = useState<readonly AccessType[]>([]);
-  const hasSomeAccessByString = (...types: string[]) => {
-    return types.some((type) => type === "anyone" || access.filter(a => a.toString() === type).length > 0);
-  };
 
   const showOrgs = hasSomeAccessByString("view-organizations", "manage-organizations");
 
