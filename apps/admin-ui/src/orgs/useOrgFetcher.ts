@@ -6,7 +6,7 @@ import type { OrgFormSubmission } from "./modals/NewOrgModal";
 import type UserRepresentation from "@keycloak/keycloak-admin-client/lib/defs/userRepresentation";
 import type GroupRepresentation from "@keycloak/keycloak-admin-client/lib/defs/groupRepresentation";
 import type RoleRepresentation from "@keycloak/keycloak-admin-client/lib/defs/roleRepresentation";
-import { AUTH_URL } from "../environment";
+import environment from "../environment";
 
 type MembersOf = UserRepresentation & {
   membership: GroupRepresentation[];
@@ -20,7 +20,8 @@ export default function useOrgFetcher(realm: string) {
   const [orgs] = useState([]);
   const [org, setOrg] = useState<OrgRepresentation | null>();
 
-  const baseUrl = `${AUTH_URL}/realms/${realm}`;
+  const authUrl = environment.authServerUrl;
+  const baseUrl = `${authUrl}/realms/${realm}`;
 
   async function fetchGet(url: string) {
     const token = await adminClient.getAccessToken();
@@ -180,7 +181,7 @@ export default function useOrgFetcher(realm: string) {
     await fetchDelete(`${baseUrl}/orgs/${orgId}/members/${userId}`);
   }
 
-  async function createInvitation(orgId: string, email: string) {
+  async function createInvitation(orgId: string, email: string, send: boolean, redirectUri: string) {
     const token = await adminClient.getAccessToken();
     await fetch(`${baseUrl}/orgs/${orgId}/invitations`, {
       method: "POST",
@@ -190,7 +191,11 @@ export default function useOrgFetcher(realm: string) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({
+        email: email,
+        send: send,
+        redirectUri: redirectUri,
+      }),
       redirect: "follow",
     });
   }

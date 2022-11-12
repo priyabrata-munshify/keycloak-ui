@@ -30,10 +30,12 @@ export const PortalLink = ({ id, open, toggleDialog }: PortalLinkProps) => {
   const [portalLink, setPortalLink] = useState("");
 
   useEffect(() => {
-    getPortalLink(orgId, "user")
+    if (open) {
+      getPortalLink(orgId, "")
       .then((pl) => setPortalLink(pl?.link || ""))
       .catch((e) => console.log(e));
-  }, []);
+    }
+  }, [open]);
 
   return (
     <ConfirmDialogModal

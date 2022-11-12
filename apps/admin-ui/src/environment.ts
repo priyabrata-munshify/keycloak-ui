@@ -22,16 +22,15 @@ export type Environment = {
 const realm =
   new URLSearchParams(window.location.search).get("realm") ?? "master";
 
-export const AUTH_URL = window.location.href.includes("localhost")
-  ? "https://app.phasetwo.io/auth"
-  : "/auth";
+//const AUTH_URL = "https://app.phasetwo.io/auth";
+const AUTH_URL = "http://garth.local:8080/auth";
 
 // The default environment, used during development.
 const defaultEnvironment: Environment = {
-  loginRealm: realm,
+  loginRealm: realm ?? "master",
   authServerUrl: AUTH_URL,
   authUrl: AUTH_URL,
-  consoleBaseUrl: "/auth/admin/master/console/",
+  consoleBaseUrl: "/admin/master/console/",
   resourceUrl: ".",
   masterRealm: "master",
   resourceVersion: "unknown",

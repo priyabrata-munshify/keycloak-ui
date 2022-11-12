@@ -36,5 +36,7 @@
   "updateRole": "Update Role",
   "editRole": "Edit Role",
   "assignRole": "Assign Role",
-  "roleName": "Role Name"
+  "roleName": "Role Name",
+  "redirectUri": "Redirect URI",
+  "redirectUriHelp": "Link to include in the invitation"
 }
