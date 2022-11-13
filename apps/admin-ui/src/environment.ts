@@ -23,7 +23,7 @@ const realm =
   new URLSearchParams(window.location.search).get("realm") ?? "master";
 
 //const AUTH_URL = "https://app.phasetwo.io/auth";
-const AUTH_URL = "http://garth.local:8080/auth";
+const AUTH_URL = "http://localhost:8080/auth";
 
 // The default environment, used during development.
 const defaultEnvironment: Environment = {
