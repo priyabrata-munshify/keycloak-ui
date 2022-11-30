@@ -181,7 +181,12 @@ export default function useOrgFetcher(realm: string) {
     await fetchDelete(`${baseUrl}/orgs/${orgId}/members/${userId}`);
   }
 
-  async function createInvitation(orgId: string, email: string, send: boolean, redirectUri: string) {
+  async function createInvitation(
+    orgId: string,
+    email: string,
+    send: boolean,
+    redirectUri: string
+  ) {
     const token = await adminClient.getAccessToken();
     await fetch(`${baseUrl}/orgs/${orgId}/invitations`, {
       method: "POST",
@@ -376,6 +381,44 @@ export default function useOrgFetcher(realm: string) {
     };
   }
 
+  // GET /:realm/orgs/:orgId/idps
+  async function getIdentityProviders(orgId: string) {
+    let resp = (await fetchGet(`${baseUrl}/orgs/${orgId}/idps`)) as Resp;
+
+    if (resp.ok) {
+      return {
+        success: true,
+        data: await resp.json(),
+      };
+    }
+
+    resp = await resp.json();
+    return {
+      error: true,
+      message: resp.error,
+    };
+  }
+
+  // PUT /:realm/orgs/:orgId/idps/:alias
+  async function updateIdentityProvider(orgId: string, idp) {
+    let resp = (await fetchPut(
+      `${baseUrl}/orgs/${orgId}/idps/${alias}`,
+      idp
+    )) as Resp;
+    if (resp.ok) {
+      return {
+        success: true,
+        message: `${idp.displayName} updated.`,
+      };
+    }
+
+    resp = await resp.json();
+    return {
+      error: true,
+      message: resp.error,
+    };
+  }
+
   return {
     refreshOrgs,
     orgs,
@@ -398,6 +441,8 @@ export default function useOrgFetcher(realm: string) {
     revokeOrgRoleForUser,
     listOrgRolesForUser,
     getPortalLink,
+    getIdentityProviders,
+    updateIdentityProvider,
     org,
   };
 }
