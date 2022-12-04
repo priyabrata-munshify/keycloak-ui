@@ -7,6 +7,7 @@ import type UserRepresentation from "@keycloak/keycloak-admin-client/lib/defs/us
 import type GroupRepresentation from "@keycloak/keycloak-admin-client/lib/defs/groupRepresentation";
 import type RoleRepresentation from "@keycloak/keycloak-admin-client/lib/defs/roleRepresentation";
 import environment from "../environment";
+import IdentityProviderRepresentation from "@keycloak/keycloak-admin-client/lib/defs/identityProviderRepresentation";
 
 type MembersOf = UserRepresentation & {
   membership: GroupRepresentation[];
@@ -400,7 +401,11 @@ export default function useOrgFetcher(realm: string) {
   }
 
   // PUT /:realm/orgs/:orgId/idps/:alias
-  async function updateIdentityProvider(orgId: string, idp) {
+  async function updateIdentityProvider(
+    orgId: string,
+    idp: IdentityProviderRepresentation,
+    alias: string
+  ) {
     let resp = (await fetchPut(
       `${baseUrl}/orgs/${orgId}/idps/${alias}`,
       idp

@@ -5,16 +5,18 @@ import { useRealm } from "../context/realm-context/RealmContext";
 import {
   ActionGroup,
   Button,
-  Form,
+  Text,
+  FormGroup,
   FormSelect,
   FormSelectOption,
   Grid,
   GridItem,
+  TextVariants,
 } from "@patternfly/react-core";
-import { FormProvider, useForm } from "react-hook-form";
-import { OrgIdPFields } from "./form/OrgIdPFields";
 import { useTranslation } from "react-i18next";
-import { first } from "lodash-es";
+// import { first } from "lodash-es";
+import { useAdminClient } from "../context/auth/AdminClient";
+import IdentityProviderRepresentation from "@keycloak/keycloak-admin-client/lib/defs/identityProviderRepresentation";
 
 type OrgIdentityProvidersProps = {
   org: OrgRepresentation;
@@ -23,40 +25,37 @@ type OrgIdentityProvidersProps = {
 export default function OrgIdentityProviders({
   org,
 }: OrgIdentityProvidersProps) {
-  console.log("[OrgIdentityProviders]", org);
+  console.log("[OrgIdentityProviders org]", org);
 
   const { realm } = useRealm();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { getIdentityProviders, updateIdentityProvider } = useOrgFetcher(realm);
+  const { updateIdentityProvider } = useOrgFetcher(realm);
   const { t } = useTranslation("orgs");
-  const [idps, setIdps] = useState([]);
-  const [selectedIdP, setSelectedIdP] = useState("");
+  const [idps, setIdps] = useState<IdentityProviderRepresentation[]>([]);
+  const [selectedIdP, setSelectedIdP] =
+    useState<IdentityProviderRepresentation>();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [enabledIdP, setEnabledIdP] =
+    useState<IdentityProviderRepresentation>();
+  const { adminClient } = useAdminClient();
 
-  const idPForm = useForm({
-    // defaultValues: defaultOrgState,
-    // mode: "onChange",
-    // shouldUnregister: false,
-  });
-  const {
-    handleSubmit,
-    reset,
-    // getValues,
-    formState: { isDirty },
-  } = idPForm;
+  console.log("[adminClient]", adminClient);
 
   async function getIDPs() {
-    const identityProviders = await getIdentityProviders(org.id);
+    const identityProviders = await adminClient.identityProviders.find({
+      realm,
+    });
+    console.log("[identityProviders]", identityProviders);
+    setIdps(identityProviders);
 
-    if (identityProviders.success) {
-      setIdps(identityProviders.data);
-
-      // at least one IdP?
-      const firstIdP = first(identityProviders.data);
-      if (firstIdP) {
-        idPForm.setValue("displayName", firstIdP.displayName);
-        idPForm.setValue("alias", firstIdP.alias);
-      }
-    }
+    // at least one IdP?
+    // find the enabled IdP applicable to this org
+    // const enabledIdP = identityProviders.find(
+    //   (idp) => idp.config.org === org.id && idp.enabled
+    // );
+    // if (enabledIdP) {
+    //   setEnabledIdP(enabledIdP);
+    // }
   }
 
   useEffect(() => {
@@ -81,47 +80,62 @@ export default function OrgIdentityProviders({
     })),
   ];
 
-  let body = <div>No IdPs assigned to this Org.</div>;
+  let body = (
+    <Text component={TextVariants.h1}>No IdPs assigned to this Org.</Text>
+  );
 
+  const buttonsDisabled = !selectedIdP && selectedIdP === enabledIdP;
+
+  // TODO: change this once dev is done, should be > 0
   if (idps.length >= 0) {
     body = (
       <div>
-        <Grid hasGutter className="pf-u-px-lg pf-u-mt-xl">
+        <Text component={TextVariants.h1}>
+          <strong>Active Identity Provider</strong>: DISPLAY_NAME (ALIAS).
+        </Text>
+        <Grid hasGutter className="pf-u-mt-xl">
           <GridItem span={4}>
-            <FormSelect
-              value={selectedIdP}
-              onChange={onChange}
-              aria-label="Identity Providers"
+            <FormGroup
+              label="Select Identity Provider"
+              type="string"
+              fieldId="idpSelector"
             >
-              {options.map((option, index) => (
-                <FormSelectOption
-                  isDisabled={option.disabled}
-                  key={index}
-                  value={option.value}
-                  label={option.label}
-                />
-              ))}
-            </FormSelect>
-          </GridItem>
-        </Grid>
-        <Grid hasGutter className="pf-u-px-lg pf-u-mt-xl">
-          <GridItem span={8}>
-            <FormProvider {...idPForm}>
-              <Form
-                isHorizontal
-                onSubmit={handleSubmit(() => console.log("Submitted"))}
+              <FormSelect
+                value={selectedIdP}
+                onChange={onChange}
+                aria-label="Identity Providers"
+                id="idpSelector"
               >
-                <OrgIdPFields />
-                <ActionGroup className="">
-                  <Button onClick={save} disabled={!isDirty}>
-                    {t("save")}
-                  </Button>
-                  <Button variant="link" onClick={reset}>
-                    {t("cancel")}
-                  </Button>
-                </ActionGroup>
-              </Form>
-            </FormProvider>
+                {options.map((option, index) => (
+                  <FormSelectOption
+                    isDisabled={option.disabled}
+                    key={index}
+                    value={option.value}
+                    label={option.label}
+                  />
+                ))}
+              </FormSelect>
+              <Text component={TextVariants.small}>
+                Change the active IdP for this Organization.
+              </Text>
+            </FormGroup>
+            <ActionGroup className="pf-u-mt-xl">
+              <Button
+                onClick={save}
+                disabled={buttonsDisabled}
+                isDisabled={buttonsDisabled}
+              >
+                {t("save")}
+              </Button>
+              <Button
+                variant="link"
+                onClick={() => setSelectedIdP(enabledIdP)}
+                disabled={buttonsDisabled}
+                isDisabled={buttonsDisabled}
+              >
+                {t("cancel")}
+              </Button>
+            </ActionGroup>
           </GridItem>
         </Grid>
       </div>
