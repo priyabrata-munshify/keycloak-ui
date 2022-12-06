@@ -12,15 +12,27 @@ import {
   Grid,
   GridItem,
   TextVariants,
+  Alert,
+  AlertGroup,
+  AlertVariant,
 } from "@patternfly/react-core";
 import { useTranslation } from "react-i18next";
 // import { first } from "lodash-es";
 import { useAdminClient } from "../context/auth/AdminClient";
 import IdentityProviderRepresentation from "@keycloak/keycloak-admin-client/lib/defs/identityProviderRepresentation";
+import { isNil } from "lodash-es";
+import { useNavigate } from "react-router-dom-v5-compat";
+import { generatePath } from "react-router-dom-v5-compat";
 
 type OrgIdentityProvidersProps = {
   org: OrgRepresentation;
 };
+
+interface AlertInfo {
+  title: string;
+  variant: AlertVariant;
+  key: number;
+}
 
 export default function OrgIdentityProviders({
   org,
@@ -32,14 +44,18 @@ export default function OrgIdentityProviders({
   const { updateIdentityProvider } = useOrgFetcher(realm);
   const { t } = useTranslation("orgs");
   const [idps, setIdps] = useState<IdentityProviderRepresentation[]>([]);
-  const [selectedIdP, setSelectedIdP] =
-    useState<IdentityProviderRepresentation>();
+  const disabledSelectorText = "please choose";
+  const [isUpdatingIdP, setisUpdatingIdP] = useState(false);
+  const [selectedIdP, setSelectedIdP] = useState<string>(disabledSelectorText);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [enabledIdP, setEnabledIdP] =
     useState<IdentityProviderRepresentation>();
   const { adminClient } = useAdminClient();
+  const navigate = useNavigate();
+  const [alerts, setAlerts] = useState<AlertInfo[]>([]);
+  const getUniqueId: () => number = () => new Date().getTime();
 
-  console.log("[adminClient]", adminClient);
+  // console.log("[adminClient]", adminClient);
 
   async function getIDPs() {
     const identityProviders = await adminClient.identityProviders.find({
@@ -50,49 +66,154 @@ export default function OrgIdentityProviders({
 
     // at least one IdP?
     // find the enabled IdP applicable to this org
-    // const enabledIdP = identityProviders.find(
-    //   (idp) => idp.config.org === org.id && idp.enabled
-    // );
-    // if (enabledIdP) {
-    //   setEnabledIdP(enabledIdP);
-    // }
+    const enabledIdP = identityProviders.find((idp) => {
+      // if the key `home.idp.discovery.org` exists
+      // and the key is equal to the org id and idp is enabled
+      if (isNil(idp.config["home.idp.discovery.org"])) {
+        return false;
+      }
+      return idp.config["home.idp.discovery.org"] === org.id && idp.enabled;
+    });
+    if (enabledIdP) {
+      setEnabledIdP(enabledIdP);
+    }
   }
 
   useEffect(() => {
     getIDPs();
   }, []);
 
-  const onChange = (value: string) => {
-    setSelectedIdP(value);
-  };
+  const onChange = (value: string) => setSelectedIdP(value);
 
   const save = async () => {
-    console.log("Wire me up");
-    //let idpUpdate = await updateIdentityProvider(org.id, selectedIdP);
+    setisUpdatingIdP(true);
+    const fullSelectedIdp = idps.find((i) => i.internalId === selectedIdP)!;
+    try {
+      let resp;
+      // enabledIdP? Disable that one
+      if (enabledIdP) {
+        resp = await updateIdentityProvider(
+          org.id,
+          { ...enabledIdP, enabled: false },
+          enabledIdP.alias!
+        );
+        if (resp.error) {
+          throw new Error("Failed to disable existing IdP.");
+        }
+      }
+
+      resp = await updateIdentityProvider(
+        org.id,
+        {
+          ...fullSelectedIdp,
+          postBrokerLoginFlowAlias: "post org broker login",
+          config: {
+            ...fullSelectedIdp.config,
+            syncmode: "FORCE",
+            hideOnLoginPage: "true",
+            "home.idp.discovery.org": org.id,
+          },
+        },
+        fullSelectedIdp.alias!
+      );
+
+      if (resp.error) {
+        throw new Error("Failed to update new IdP.");
+      }
+
+      setAlerts((prevAlertInfo) => [
+        ...prevAlertInfo,
+        {
+          title: resp.message,
+          variant: AlertVariant.success,
+          key: getUniqueId(),
+        },
+      ]);
+    } catch (e) {
+      console.log("Error during update", e);
+      setAlerts((prevAlertInfo) => [
+        ...prevAlertInfo,
+        {
+          title: "IdP failed to update for this org. Please try again.",
+          variant: AlertVariant.danger,
+          key: getUniqueId(),
+        },
+      ]);
+    }
+    setisUpdatingIdP(false);
   };
 
   const options = [
-    { value: "please choose", label: "Select one", disabled: true },
-    ...idps.map((idp) => ({
-      value: idp.alias,
-      label: idp.displayName,
-      disabled: false,
-    })),
+    { value: disabledSelectorText, label: "Select one", disabled: true },
+    ...idps
+      .filter((idp) => idp.internalId !== enabledIdP?.internalId)
+      .filter((idp) =>
+        isNil(idp.config["home.idp.discovery.org"])
+          ? true
+          : idp.config["home.idp.discovery.org"] === org.id
+      )
+      .map((idp) => {
+        let label = `${idp.displayName} (${idp.alias})`;
+        if (!isNil(idp.config["home.idp.discovery.org"])) {
+          label = `${label} - ${org.displayName}`;
+        }
+        return {
+          value: idp.internalId,
+          label: label,
+          disabled: false,
+        };
+      }),
   ];
 
   let body = (
     <Text component={TextVariants.h1}>No IdPs assigned to this Org.</Text>
   );
 
-  const buttonsDisabled = !selectedIdP && selectedIdP === enabledIdP;
+  const buttonsDisabled = selectedIdP === disabledSelectorText;
 
-  // TODO: change this once dev is done, should be > 0
-  if (idps.length >= 0) {
+  if (idps.length > 0) {
     body = (
       <div>
+        <AlertGroup
+          isLiveRegion
+          aria-live="polite"
+          aria-relevant="additions text"
+          aria-atomic="false"
+        >
+          {alerts.map(({ title, variant, key }) => (
+            <Alert variant={variant} title={title} key={key} timeout={8000} />
+          ))}
+        </AlertGroup>
         <Text component={TextVariants.h1}>
-          <strong>Active Identity Provider</strong>: DISPLAY_NAME (ALIAS).
+          {enabledIdP ? (
+            <>
+              <strong>Organization Owned IdP</strong>: {enabledIdP.displayName}{" "}
+              ({enabledIdP.alias})
+              <Button
+                variant="link"
+                onClick={() =>
+                  navigate(
+                    generatePath(
+                      "/auth/admin/:realm/console/#/self/identity-providers/:providerId/:alias/settings",
+                      {
+                        realm,
+                        providerId: enabledIdP.providerId!,
+                        alias: enabledIdP.alias!,
+                      }
+                    )
+                  )
+                }
+                disabled={buttonsDisabled}
+                isDisabled={buttonsDisabled}
+              >
+                {t("edit")}
+              </Button>
+            </>
+          ) : (
+            <div>No Organization Owned IdP Assigned</div>
+          )}
         </Text>
+
         <Grid hasGutter className="pf-u-mt-xl">
           <GridItem span={4}>
             <FormGroup
@@ -123,14 +244,15 @@ export default function OrgIdentityProviders({
               <Button
                 onClick={save}
                 disabled={buttonsDisabled}
-                isDisabled={buttonsDisabled}
+                isDisabled={buttonsDisabled || isUpdatingIdP}
+                isLoading={isUpdatingIdP}
               >
                 {t("save")}
               </Button>
               <Button
                 variant="link"
-                onClick={() => setSelectedIdP(enabledIdP)}
-                disabled={buttonsDisabled}
+                onClick={() => setSelectedIdP(disabledSelectorText)}
+                disabled={buttonsDisabled || isUpdatingIdP}
                 isDisabled={buttonsDisabled}
               >
                 {t("cancel")}

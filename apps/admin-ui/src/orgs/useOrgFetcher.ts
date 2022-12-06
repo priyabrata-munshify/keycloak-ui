@@ -413,7 +413,7 @@ export default function useOrgFetcher(realm: string) {
     if (resp.ok) {
       return {
         success: true,
-        message: `${idp.displayName} updated.`,
+        message: `${idp.displayName} updated for this org.`,
       };
     }
 
