@@ -7,6 +7,7 @@ import type UserRepresentation from "@keycloak/keycloak-admin-client/lib/defs/us
 import type GroupRepresentation from "@keycloak/keycloak-admin-client/lib/defs/groupRepresentation";
 import type RoleRepresentation from "@keycloak/keycloak-admin-client/lib/defs/roleRepresentation";
 import environment from "../environment";
+import IdentityProviderRepresentation from "@keycloak/keycloak-admin-client/lib/defs/identityProviderRepresentation";
 
 type MembersOf = UserRepresentation & {
   membership: GroupRepresentation[];
@@ -181,7 +182,12 @@ export default function useOrgFetcher(realm: string) {
     await fetchDelete(`${baseUrl}/orgs/${orgId}/members/${userId}`);
   }
 
-  async function createInvitation(orgId: string, email: string, send: boolean, redirectUri: string) {
+  async function createInvitation(
+    orgId: string,
+    email: string,
+    send: boolean,
+    redirectUri: string
+  ) {
     const token = await adminClient.getAccessToken();
     await fetch(`${baseUrl}/orgs/${orgId}/invitations`, {
       method: "POST",
@@ -376,6 +382,30 @@ export default function useOrgFetcher(realm: string) {
     };
   }
 
+  // PUT /:realm/identity-provider/instances/:alias
+  async function updateIdentityProvider(
+    orgId: string,
+    idp: IdentityProviderRepresentation,
+    alias: string
+  ) {
+    let resp = (await fetchPut(
+      `${baseUrl}/${realm}/identity-provider/instances/${alias}`,
+      idp
+    )) as Resp;
+    if (resp.ok) {
+      return {
+        success: true,
+        message: `${idp.displayName} updated for this org.`,
+      };
+    }
+
+    resp = await resp.json();
+    return {
+      error: true,
+      message: resp.error,
+    };
+  }
+
   return {
     refreshOrgs,
     orgs,
@@ -398,6 +428,7 @@ export default function useOrgFetcher(realm: string) {
     revokeOrgRoleForUser,
     listOrgRolesForUser,
     getPortalLink,
+    updateIdentityProvider,
     org,
   };
 }
