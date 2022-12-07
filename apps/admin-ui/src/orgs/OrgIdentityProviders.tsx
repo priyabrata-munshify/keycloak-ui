@@ -17,7 +17,6 @@ import {
   AlertVariant,
 } from "@patternfly/react-core";
 import { useTranslation } from "react-i18next";
-// import { first } from "lodash-es";
 import { useAdminClient } from "../context/auth/AdminClient";
 import IdentityProviderRepresentation from "@keycloak/keycloak-admin-client/lib/defs/identityProviderRepresentation";
 import { isNil } from "lodash-es";
@@ -181,7 +180,13 @@ export default function OrgIdentityProviders({
           aria-atomic="false"
         >
           {alerts.map(({ title, variant, key }) => (
-            <Alert variant={variant} title={title} key={key} timeout={8000} />
+            <Alert
+              variant={variant}
+              title={title}
+              key={key}
+              timeout={8000}
+              className="pf-u-mb-lg"
+            />
           ))}
         </AlertGroup>
         <Text component={TextVariants.h1}>
@@ -215,7 +220,7 @@ export default function OrgIdentityProviders({
         </Text>
 
         <Grid hasGutter className="pf-u-mt-xl">
-          <GridItem span={4}>
+          <GridItem span={8}>
             <FormGroup
               label="Select Identity Provider"
               type="string"

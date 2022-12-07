@@ -382,32 +382,14 @@ export default function useOrgFetcher(realm: string) {
     };
   }
 
-  // GET /:realm/orgs/:orgId/idps
-  async function getIdentityProviders(orgId: string) {
-    let resp = (await fetchGet(`${baseUrl}/orgs/${orgId}/idps`)) as Resp;
-
-    if (resp.ok) {
-      return {
-        success: true,
-        data: await resp.json(),
-      };
-    }
-
-    resp = await resp.json();
-    return {
-      error: true,
-      message: resp.error,
-    };
-  }
-
-  // PUT /:realm/orgs/:orgId/idps/:alias
+  // PUT /:realm/identity-provider/instances/:alias
   async function updateIdentityProvider(
     orgId: string,
     idp: IdentityProviderRepresentation,
     alias: string
   ) {
     let resp = (await fetchPut(
-      `${baseUrl}/orgs/${orgId}/idps/${alias}`,
+      `${baseUrl}/${realm}/identity-provider/instances/${alias}`,
       idp
     )) as Resp;
     if (resp.ok) {
@@ -446,7 +428,6 @@ export default function useOrgFetcher(realm: string) {
     revokeOrgRoleForUser,
     listOrgRolesForUser,
     getPortalLink,
-    getIdentityProviders,
     updateIdentityProvider,
     org,
   };
