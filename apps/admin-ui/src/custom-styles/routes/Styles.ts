@@ -1,20 +1,31 @@
-import type { LocationDescriptorObject } from "history";
 import { lazy } from "react";
 import { generatePath } from "react-router-dom";
 import type { RouteDef } from "../../route-config";
+import type { Path } from "react-router-dom-v5-compat";
+
+export type StylesTab = "general" | "login";
 
 export type StylesParams = {
   realm: string;
+  tab?: StylesTab;
 };
 
 export const StylesRoute: RouteDef = {
   path: "/:realm/styles",
   component: lazy(() => import("../StylesSection")),
   breadcrumb: (t) => t("styles"),
-  // breadcrumb: (t) => "Styles",
   access: "query-clients",
 };
 
-export const toOrgs = (params: StylesParams): LocationDescriptorObject => ({
-  pathname: generatePath(StylesRoute.path, params),
-});
+export const StylesRouteWithTab: RouteDef = {
+  ...StylesRoute,
+  path: "/:realm/styles/:tab",
+};
+
+export const toStyles = (params: StylesParams): Partial<Path> => {
+  const path = params.tab ? StylesRouteWithTab.path : StylesRoute.path;
+
+  return {
+    pathname: generatePath(path, params),
+  };
+};
