@@ -1,4 +1,4 @@
-import type { AccessType } from "@keycloak/keycloak-admin-client/lib/defs/whoAmIRepresentation";
+// import type { AccessType } from "@keycloak/keycloak-admin-client/lib/defs/whoAmIRepresentation";
 import { FormEvent, FunctionComponent } from "react";
 import { NavLink, useRouteMatch } from "react-router-dom";
 import { useLocation, useNavigate } from "react-router-dom-v5-compat";
@@ -88,7 +88,10 @@ export const PageNav: FunctionComponent = () => {
     "view-identity-providers"
   );
 
-  const showOrgs = hasSomeAccessByString("view-organizations", "manage-organizations");
+  const showOrgs = hasSomeAccessByString(
+    "view-organizations",
+    "manage-organizations"
+  );
 
   const isOnAddRealm = !!useRouteMatch(AddRealmRoute.path);
 
@@ -127,8 +130,9 @@ export const PageNav: FunctionComponent = () => {
           {!isOnAddRealm && (
             <NavGroup aria-label={t("extensions")} title={t("extensions")}>
               {showOrgs && (
-                <LeftNav title="organizations" path="/organizations" />
+                <LeftNav title="Organizations" path="/organizations" />
               )}
+              <LeftNav title="Styles" path="/styles" />
             </NavGroup>
           )}
         </Nav>

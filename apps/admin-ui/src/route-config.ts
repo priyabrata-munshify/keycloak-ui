@@ -17,6 +17,7 @@ import realmRoutes from "./realm/routes";
 import sessionRoutes from "./sessions/routes";
 import userFederationRoutes from "./user-federation/routes";
 import userRoutes from "./user/routes";
+import stylesRoutes from "./custom-styles/routes";
 
 export type RouteDef = {
   path: string;
@@ -46,6 +47,7 @@ export const routes: RouteDef[] = [
   ...userFederationRoutes,
   ...userRoutes,
   ...groupsRoutes,
+  ...stylesRoutes,
   ...dashboardRoutes,
   NotFoundRoute,
 ];
