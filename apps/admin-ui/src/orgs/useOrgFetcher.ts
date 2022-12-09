@@ -388,22 +388,21 @@ export default function useOrgFetcher(realm: string) {
     idp: IdentityProviderRepresentation,
     alias: string
   ) {
-    let resp = (await fetchPut(
-      `${baseUrl}/${realm}/identity-provider/instances/${alias}`,
-      idp
-    )) as Resp;
-    if (resp.ok) {
+    try {
+      await adminClient.identityProviders.update(
+        {alias},
+        {...idp}
+      );
       return {
         success: true,
         message: `${idp.displayName} updated for this org.`,
       };
+    } catch (error) {
+      return {
+        error: true,
+        message: error,
+      };
     }
-
-    resp = await resp.json();
-    return {
-      error: true,
-      message: resp.error,
-    };
   }
 
   return {

@@ -13,6 +13,7 @@
   "orgDetails": "Organization Details",
   "errorFetching": "Error fetching organization",
   "save": "Save",
+  "cancel": "Cancel",
   "revert": "Revert",
   "displayName": "Display name",
   "domain": "Domain",

@@ -89,11 +89,11 @@ export default function OrgIdentityProviders({
     const fullSelectedIdp = idps.find((i) => i.internalId === selectedIdP)!;
     try {
       let resp;
-      // enabledIdP? Disable that one
+      // enabledIdP? Set org to empty
       if (enabledIdP) {
         resp = await updateIdentityProvider(
           org.id,
-          { ...enabledIdP, enabled: false },
+          { ...enabledIdP, config: { "home.idp.discovery.org": "" } },
           enabledIdP.alias!
         );
         if (resp.error) {
