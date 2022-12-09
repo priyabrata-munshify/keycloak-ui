@@ -13,7 +13,7 @@ type MembersOf = UserRepresentation & {
   membership: GroupRepresentation[];
 };
 
-type Resp = Response & { error: string; data?: any[] };
+type OrgResp = Response & { error: string; data?: any[] };
 
 export default function useOrgFetcher(realm: string) {
   const { adminClient } = useAdminClient();
@@ -116,7 +116,7 @@ export default function useOrgFetcher(realm: string) {
       id: org.name,
       ...org,
       realm,
-    })) as Resp;
+    })) as OrgResp;
 
     // successful response is just an empty 201
     if (resp.ok) {
@@ -146,7 +146,7 @@ export default function useOrgFetcher(realm: string) {
   }
 
   async function deleteOrg(org: OrgRepresentation) {
-    let resp = (await fetchDelete(`${baseUrl}/orgs/${org.id}`)) as Resp;
+    let resp = (await fetchDelete(`${baseUrl}/orgs/${org.id}`)) as OrgResp;
     if (resp.ok) {
       return { success: true, message: "Organziation removed." };
     }
@@ -238,7 +238,7 @@ export default function useOrgFetcher(realm: string) {
   async function deleteRoleFromOrg(orgId: string, role: RoleRepresentation) {
     let resp = (await fetchDelete(
       `${baseUrl}/orgs/${orgId}/roles/${role.name}`
-    )) as Resp;
+    )) as OrgResp;
     if (resp.ok) {
       return {
         success: true,
@@ -258,7 +258,7 @@ export default function useOrgFetcher(realm: string) {
       id: "fake-id",
       name: role.name,
       description: role.description || "",
-    })) as Resp;
+    })) as OrgResp;
 
     if (resp.ok) {
       return {
@@ -275,7 +275,10 @@ export default function useOrgFetcher(realm: string) {
   }
 
   async function updateRoleForOrg(orgId: string, role: RoleRepresentation) {
-    let resp = (await fetchPut(`${baseUrl}/orgs/${orgId}/roles`, role)) as Resp;
+    let resp = (await fetchPut(
+      `${baseUrl}/orgs/${orgId}/roles`,
+      role
+    )) as OrgResp;
     if (resp.ok) {
       return {
         success: true,
@@ -298,7 +301,7 @@ export default function useOrgFetcher(realm: string) {
   ) {
     let resp = (await fetchGet(
       `${baseUrl}/orgs/${orgId}/roles/${role.name}/users/${user.id}`
-    )) as Resp;
+    )) as OrgResp;
 
     if (resp.ok) {
       return {
@@ -318,7 +321,7 @@ export default function useOrgFetcher(realm: string) {
   async function listOrgRolesForUser(orgId: string, user: UserRepresentation) {
     const resp = (await fetchGet(
       `${baseUrl}/users/${user.id}/orgs/${orgId}/roles`
-    )) as Resp;
+    )) as OrgResp;
 
     if (resp.ok) {
       return {
@@ -342,7 +345,7 @@ export default function useOrgFetcher(realm: string) {
     let resp = (await fetchPut(
       `${baseUrl}/orgs/${orgId}/roles/${role.name}/users/${user.id}`,
       {}
-    )) as Resp;
+    )) as OrgResp;
 
     if (resp.ok) {
       return {
@@ -366,7 +369,7 @@ export default function useOrgFetcher(realm: string) {
   ) {
     let resp = (await fetchDelete(
       `${baseUrl}/orgs/${orgId}/roles/${role.name}/users/${user.id}`
-    )) as Resp;
+    )) as OrgResp;
 
     if (resp.ok) {
       return {
@@ -384,15 +387,11 @@ export default function useOrgFetcher(realm: string) {
 
   // PUT /:realm/identity-provider/instances/:alias
   async function updateIdentityProvider(
-    orgId: string,
     idp: IdentityProviderRepresentation,
     alias: string
   ) {
     try {
-      await adminClient.identityProviders.update(
-        {alias},
-        {...idp}
-      );
+      await adminClient.identityProviders.update({ alias }, { ...idp });
       return {
         success: true,
         message: `${idp.displayName} updated for this org.`,
