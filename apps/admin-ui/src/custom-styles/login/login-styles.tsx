@@ -1,3 +1,10 @@
+// import { HexColorPicker } from "react-colorful";
+
+// const YourComponent = () => {
+//   const [color, setColor] = useState("#aabbcc");
+//   return <HexColorPicker color={color} onChange={setColor} />;
+// };
+
 export const LoginStyles = () => {
   // Primary color: input box
   //    validates it's a html hex color

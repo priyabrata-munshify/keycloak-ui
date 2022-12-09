@@ -1,0 +1,12 @@
+{
+  "styles": "Styles",
+  "explain": "Customize the look and feel of your login, user management, organization portal and emails.",
+  "general": "General",
+  "login": "Login",
+  "logoUrl": "Logo URL",
+  "faviconUrl": "Favicon URL",
+  "formHelpLogoUrl": "Enter a valid URL to a hosted image file. The file must be publicly accessible via the web.",
+  "formHelpFaviconUrl": "Enter a valid URL to a hosted image file. The file must be publicly accessible via the web.",
+  "formHelpLogoUrlInvalid": "A valid URL is required.",
+  "formHelpFaviconUrlInvalid": "A valid URL is required."
+}
