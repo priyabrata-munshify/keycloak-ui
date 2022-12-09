@@ -33,6 +33,13 @@ interface AlertInfo {
   key: number;
 }
 
+interface IdentityProviderRepresentationP2
+  extends IdentityProviderRepresentation {
+  config: {
+    "home.idp.discovery.org"?: string;
+  };
+}
+
 export default function OrgIdentityProviders({
   org,
 }: OrgIdentityProvidersProps) {
@@ -42,13 +49,13 @@ export default function OrgIdentityProviders({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { updateIdentityProvider } = useOrgFetcher(realm);
   const { t } = useTranslation("orgs");
-  const [idps, setIdps] = useState<IdentityProviderRepresentation[]>([]);
+  const [idps, setIdps] = useState<IdentityProviderRepresentationP2[]>([]);
   const disabledSelectorText = "please choose";
   const [isUpdatingIdP, setisUpdatingIdP] = useState(false);
   const [selectedIdP, setSelectedIdP] = useState<string>(disabledSelectorText);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [enabledIdP, setEnabledIdP] =
-    useState<IdentityProviderRepresentation>();
+    useState<IdentityProviderRepresentationP2>();
   const { adminClient } = useAdminClient();
   const navigate = useNavigate();
   const [alerts, setAlerts] = useState<AlertInfo[]>([]);
@@ -57,9 +64,9 @@ export default function OrgIdentityProviders({
   // console.log("[adminClient]", adminClient);
 
   async function getIDPs() {
-    const identityProviders = await adminClient.identityProviders.find({
+    const identityProviders = (await adminClient.identityProviders.find({
       realm,
-    });
+    })) as IdentityProviderRepresentationP2[];
     console.log("[identityProviders]", identityProviders);
     setIdps(identityProviders);
 
@@ -88,21 +95,18 @@ export default function OrgIdentityProviders({
     setisUpdatingIdP(true);
     const fullSelectedIdp = idps.find((i) => i.internalId === selectedIdP)!;
     try {
-      let resp;
       // enabledIdP? Set org to empty
       if (enabledIdP) {
-        resp = await updateIdentityProvider(
-          org.id,
+        const respE = await updateIdentityProvider(
           { ...enabledIdP, config: { "home.idp.discovery.org": "" } },
           enabledIdP.alias!
         );
-        if (resp.error) {
+        if (respE.error) {
           throw new Error("Failed to disable existing IdP.");
         }
       }
 
-      resp = await updateIdentityProvider(
-        org.id,
+      const resp = await updateIdentityProvider(
         {
           ...fullSelectedIdp,
           postBrokerLoginFlowAlias: "post org broker login",
@@ -123,7 +127,7 @@ export default function OrgIdentityProviders({
       setAlerts((prevAlertInfo) => [
         ...prevAlertInfo,
         {
-          title: resp.message,
+          title: resp.message as string,
           variant: AlertVariant.success,
           key: getUniqueId(),
         },
