@@ -1,32 +1,90 @@
 import {
+  Brand,
   Form,
   FormGroup,
   PageSection,
+  Panel,
+  PanelHeader,
+  PanelMain,
+  PanelMainBody,
   ValidatedOptions,
 } from "@patternfly/react-core";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { HelpItem } from "../../components/help-enabler/HelpItem";
 import { KeycloakTextInput } from "../../components/keycloak-text-input/KeycloakTextInput";
 import { SaveReset } from "../components/SaveReset";
+import { useState } from "react";
 
 type GeneralStylesType = {
   logoUrl: string;
   faviconUrl: string;
 };
 
+// TODO: Add Validation
+// TODO: Add Image Value Populate
 export const GeneralStyles = () => {
   const { t } = useTranslation("styles");
   const {
     register,
-    // control,
+    control,
     reset,
+    getValues,
+    setError,
+    clearErrors,
     formState: { errors },
   } = useForm<GeneralStylesType>();
+
+  const [logoUrlError, setLogoUrlError] = useState(false);
+
+  const isValidLogoUrl = (isValid: boolean) => {
+    if (isValid) {
+      clearErrors("logoUrl");
+      setLogoUrlError(false);
+    } else {
+      setLogoUrlError(true);
+      setError("logoUrl", { type: "custom", message: "Invalid image URL." });
+    }
+  };
+
+  useWatch({
+    name: "logoUrl",
+    control,
+  });
+  useWatch({
+    name: "faviconUrl",
+    control,
+  });
 
   const save = () => {
     console.log("[save]");
   };
+
+  console.log("errors", errors);
+  const logoUrl = getValues("logoUrl");
+
+  const LogoUrlBrand = (
+    <Panel variant="bordered" className="pf-u-mt-lg">
+      <PanelHeader>Logo Preview</PanelHeader>
+      <PanelMain>
+        <PanelMainBody>
+          {logoUrl ? (
+            logoUrlError ? (
+              <div>Invalid image url. Please check the link above.</div>
+            ) : (
+              <Brand
+                src={logoUrl}
+                alt="Custom Logo"
+                widths={{ default: "200px" }}
+              ></Brand>
+            )
+          ) : (
+            <div>Enter a custom URL for the Logo to preview the image.</div>
+          )}
+        </PanelMainBody>
+      </PanelMain>
+    </Panel>
+  );
 
   return (
     <PageSection variant="light" className="keycloak__form">
@@ -56,6 +114,15 @@ export const GeneralStyles = () => {
               errors.logoUrl ? ValidatedOptions.error : ValidatedOptions.default
             }
           />
+          {LogoUrlBrand}
+          {logoUrl && (
+            <img
+              className="pf-u-display-none"
+              src={logoUrl}
+              onError={() => isValidLogoUrl(false)}
+              onLoad={() => isValidLogoUrl(true)}
+            ></img>
+          )}
         </FormGroup>
         {/* Favicon Url */}
         <FormGroup
