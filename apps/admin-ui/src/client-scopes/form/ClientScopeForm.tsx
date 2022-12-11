@@ -26,6 +26,7 @@ import type ProtocolMapperRepresentation from "@keycloak/keycloak-admin-client/l
 import {
   AllClientScopes,
   changeScope,
+  ClientScope,
   ClientScopeDefaultOptionalType,
 } from "../../components/client-scope/ClientScopeTypes";
 import { useRealm } from "../../context/realm-context/RealmContext";
@@ -45,7 +46,7 @@ export default function ClientScopeForm() {
   const { realm } = useRealm();
 
   const { adminClient } = useAdminClient();
-  const { id, type } = useParams<{ id: string; type: AllClientScopes }>();
+  const { id } = useParams<{ id: string }>();
 
   const { addAlert, addError } = useAlerts();
 
@@ -59,9 +60,23 @@ export default function ClientScopeForm() {
         if (!clientScope) {
           throw new Error(t("common:notFound"));
         }
+
+        const defaultScopes =
+          await adminClient.clientScopes.listDefaultClientScopes();
+        const optionalScopes =
+          await adminClient.clientScopes.listDefaultOptionalClientScopes();
+
         return {
           ...clientScope,
-          type,
+          type: defaultScopes.find(
+            (defaultScope) => defaultScope.name === clientScope.name
+          )
+            ? ClientScope.default
+            : optionalScopes.find(
+                (optionalScope) => optionalScope.name === clientScope.name
+              )
+            ? ClientScope.optional
+            : AllClientScopes.none,
         };
       }
     },
@@ -80,11 +95,7 @@ export default function ClientScopeForm() {
 
       if (id) {
         await adminClient.clientScopes.update({ id }, clientScopes);
-        changeScope(
-          adminClient,
-          { ...clientScopes, id, type },
-          clientScopes.type
-        );
+        changeScope(adminClient, { ...clientScopes, id }, clientScopes.type);
       } else {
         await adminClient.clientScopes.create(clientScopes);
         const scope = await adminClient.clientScopes.findOneByName({
@@ -103,7 +114,6 @@ export default function ClientScopeForm() {
           toClientScope({
             realm,
             id: scope.id!,
-            type: clientScopes.type || "none",
             tab: "settings",
           })
         );
@@ -172,7 +182,6 @@ export default function ClientScopeForm() {
         toMapper({
           realm,
           id: clientScope!.id!,
-          type,
           mapperId: mapper.id!,
         })
       );
@@ -214,7 +223,6 @@ export default function ClientScopeForm() {
         realm,
         id,
         tab,
-        type,
       }),
       history,
     });
@@ -268,7 +276,7 @@ export default function ClientScopeForm() {
                 onAdd={addMappers}
                 onDelete={onDelete}
                 detailLink={(id) =>
-                  toMapper({ realm, id: clientScope.id!, type, mapperId: id! })
+                  toMapper({ realm, id: clientScope.id!, mapperId: id! })
                 }
               />
             </Tab>
