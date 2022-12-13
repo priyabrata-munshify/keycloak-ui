@@ -1,4 +1,5 @@
 import {
+  AlertVariant,
   Brand,
   Form,
   FormGroup,
@@ -14,17 +15,50 @@ import { useTranslation } from "react-i18next";
 import { HelpItem } from "../../components/help-enabler/HelpItem";
 import { KeycloakTextInput } from "../../components/keycloak-text-input/KeycloakTextInput";
 import { SaveReset } from "../components/SaveReset";
-import { useState } from "react";
+import { useState, ReactElement, useEffect } from "react";
+import { useAdminClient } from "../../context/auth/AdminClient";
+import { useRealm } from "../../context/realm-context/RealmContext";
+import RealmRepresentation from "@keycloak/keycloak-admin-client/lib/defs/realmRepresentation";
+import { get, isEqual } from "lodash-es";
+import { useAlerts } from "../../components/alert/Alerts";
 
 type GeneralStylesType = {
   logoUrl: string;
   faviconUrl: string;
 };
 
+const LogoContainer = ({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactElement<any, any>;
+}) => {
+  return (
+    <Panel variant="bordered" className="pf-u-mt-lg">
+      <PanelHeader>{title}</PanelHeader>
+      <PanelMain>
+        <PanelMainBody>{children}</PanelMainBody>
+      </PanelMain>
+    </Panel>
+  );
+};
+
+const InvalidImageError = () => (
+  <div>Invalid image url. Please check the link above.</div>
+);
+
+const ImageInsturction = ({ name }: { name: string }) => (
+  <div>Enter a custom URL for the {name} to preview the image.</div>
+);
+
 // TODO: Add Validation
 // TODO: Add Image Value Populate
 export const GeneralStyles = () => {
   const { t } = useTranslation("styles");
+  const { realm } = useRealm();
+  const { adminClient } = useAdminClient();
+  const { addAlert, addError } = useAlerts();
   const {
     register,
     control,
@@ -32,18 +66,44 @@ export const GeneralStyles = () => {
     getValues,
     setError,
     clearErrors,
-    formState: { errors },
-  } = useForm<GeneralStylesType>();
+    setValue,
+    formState: { errors, isDirty },
+  } = useForm<GeneralStylesType>({
+    defaultValues: {
+      logoUrl: "",
+      faviconUrl: "",
+    },
+  });
+
+  async function loadRealm() {
+    const realmInfo = await adminClient.realms.findOne({ realm });
+    setFullRealm(realmInfo);
+    setValue("logoUrl", get(realmInfo?.attributes, "assets.logo.url", ""));
+    setValue(
+      "faviconUrl",
+      get(realmInfo?.attributes, "assets.favicon.url", "")
+    );
+  }
 
   const [logoUrlError, setLogoUrlError] = useState(false);
+  const [faviconUrlError, setFaviconUrlError] = useState(false);
+  const [fullRealm, setFullRealm] = useState<RealmRepresentation>();
 
-  const isValidLogoUrl = (isValid: boolean) => {
+  useEffect(() => {
+    loadRealm();
+  }, []);
+
+  const isValidUrl = (
+    isValid: boolean,
+    formElement: "logoUrl" | "faviconUrl",
+    setUrlError: (errorState: boolean) => void
+  ) => {
     if (isValid) {
-      clearErrors("logoUrl");
-      setLogoUrlError(false);
+      clearErrors(formElement);
+      setUrlError(false);
     } else {
-      setLogoUrlError(true);
-      setError("logoUrl", { type: "custom", message: "Invalid image URL." });
+      setUrlError(true);
+      setError(formElement, { type: "custom", message: "Invalid image URL." });
     }
   };
 
@@ -56,34 +116,63 @@ export const GeneralStyles = () => {
     control,
   });
 
-  const save = () => {
-    console.log("[save]");
+  const save = async () => {
+    // update realm with new attributes
+    const updatedRealm = {
+      ...fullRealm,
+      attributes: {
+        ...fullRealm!.attributes,
+        "assets.logo.url": logoUrl,
+        "assets.favicon.url": faviconUrl,
+      },
+    };
+
+    try {
+      await adminClient.realms.update({ realm }, updatedRealm);
+      addAlert("Attributes for realm have been updated.", AlertVariant.success);
+    } catch (e) {
+      console.error("Could not update realm with attributes.", e);
+      addError("Failed to update realm.", e);
+    }
   };
 
-  console.log("errors", errors);
   const logoUrl = getValues("logoUrl");
+  const faviconUrl = getValues("faviconUrl");
 
   const LogoUrlBrand = (
-    <Panel variant="bordered" className="pf-u-mt-lg">
-      <PanelHeader>Logo Preview</PanelHeader>
-      <PanelMain>
-        <PanelMainBody>
-          {logoUrl ? (
-            logoUrlError ? (
-              <div>Invalid image url. Please check the link above.</div>
-            ) : (
-              <Brand
-                src={logoUrl}
-                alt="Custom Logo"
-                widths={{ default: "200px" }}
-              ></Brand>
-            )
-          ) : (
-            <div>Enter a custom URL for the Logo to preview the image.</div>
-          )}
-        </PanelMainBody>
-      </PanelMain>
-    </Panel>
+    <LogoContainer title="Logo Preview">
+      {logoUrl ? (
+        logoUrlError ? (
+          <InvalidImageError />
+        ) : (
+          <Brand
+            src={logoUrl}
+            alt="Custom Logo"
+            widths={{ default: "200px" }}
+          ></Brand>
+        )
+      ) : (
+        <ImageInsturction name="Logo" />
+      )}
+    </LogoContainer>
+  );
+
+  const FaviconUrlBrand = (
+    <LogoContainer title="Favicon Preview">
+      {faviconUrl ? (
+        faviconUrlError ? (
+          <InvalidImageError />
+        ) : (
+          <Brand
+            src={faviconUrl}
+            alt="Favicon"
+            widths={{ default: "200px" }}
+          ></Brand>
+        )
+      ) : (
+        <ImageInsturction name="Favicon" />
+      )}
+    </LogoContainer>
   );
 
   return (
@@ -119,11 +208,12 @@ export const GeneralStyles = () => {
             <img
               className="pf-u-display-none"
               src={logoUrl}
-              onError={() => isValidLogoUrl(false)}
-              onLoad={() => isValidLogoUrl(true)}
+              onError={() => isValidUrl(false, "logoUrl", setLogoUrlError)}
+              onLoad={() => isValidUrl(true, "logoUrl", setLogoUrlError)}
             ></img>
           )}
         </FormGroup>
+
         {/* Favicon Url */}
         <FormGroup
           labelIcon={
@@ -153,8 +243,24 @@ export const GeneralStyles = () => {
                 : ValidatedOptions.default
             }
           />
+          {FaviconUrlBrand}
+          {faviconUrl && (
+            <img
+              className="pf-u-display-none"
+              src={faviconUrl}
+              onError={() =>
+                isValidUrl(false, "faviconUrl", setFaviconUrlError)
+              }
+              onLoad={() => isValidUrl(true, "faviconUrl", setFaviconUrlError)}
+            ></img>
+          )}
         </FormGroup>
-        <SaveReset name="generalStyles" save={save} reset={reset} isActive />
+        <SaveReset
+          name="generalStyles"
+          save={save}
+          reset={reset}
+          isActive={isDirty && isEqual(errors, {})}
+        />
       </Form>
     </PageSection>
   );
