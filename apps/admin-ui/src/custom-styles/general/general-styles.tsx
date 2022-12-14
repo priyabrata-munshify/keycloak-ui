@@ -52,8 +52,6 @@ const ImageInsturction = ({ name }: { name: string }) => (
   <div>Enter a custom URL for the {name} to preview the image.</div>
 );
 
-// TODO: Add Validation
-// TODO: Add Image Value Populate
 export const GeneralStyles = () => {
   const { t } = useTranslation("styles");
   const { realm } = useRealm();
@@ -127,6 +125,7 @@ export const GeneralStyles = () => {
       },
     };
 
+    // save values
     try {
       await adminClient.realms.update({ realm }, updatedRealm);
       addAlert("Attributes for realm have been updated.", AlertVariant.success);

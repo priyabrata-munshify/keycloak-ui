@@ -8,5 +8,13 @@
   "formHelpLogoUrl": "Enter a valid URL to a hosted image file. The file must be publicly accessible via the web.",
   "formHelpFaviconUrl": "Enter a valid URL to a hosted image file. The file must be publicly accessible via the web.",
   "formHelpLogoUrlInvalid": "A valid URL is required.",
-  "formHelpFaviconUrlInvalid": "A valid URL is required."
+  "formHelpFaviconUrlInvalid": "A valid URL is required.",
+  "primaryColor": "Primary Color",
+  "secondaryColor": "Secondary Color",
+  "backgroundColor": "Background Color",
+  "css": "CSS",
+  "primaryColorHelp": "Primary color to be used. Must be a hex value.",
+  "secondaryColorHelp": "Secondary color to be used. Must be a hex value.",
+  "backgroundColorHelp": "Background color to be used. Must be a hex value.",
+  "cssHelp": "Custom CSS. Will override any other values."
 }
