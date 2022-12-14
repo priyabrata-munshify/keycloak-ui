@@ -1,7 +1,6 @@
 const adminGuide =
   "https://www.keycloak.org/docs/latest/server_admin/index.html";
-const phasetwoDocs =
-  "https://phasetwo.io/docs";
+const phasetwoDocs = "https://phasetwo.io/docs";
 
 export default {
   documentationUrl: `${adminGuide}`,
@@ -17,4 +16,5 @@ export default {
   identityProvidersUrl: `${adminGuide}#_identity_broker`,
   userFederationUrl: `${adminGuide}#_user-storage-federation`,
   orgsUrl: `${phasetwoDocs}/organizations/`,
+  stylesUrl: `${phasetwoDocs}/getting-started/customizing-ui`,
 };
