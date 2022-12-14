@@ -57,17 +57,17 @@ export const LoginStyles = () => {
 
     setValue(
       "primaryColor",
-      get(realmInfo?.attributes, "assets.login.primaryColor", "")
+      get(realmInfo?.attributes, "_providerConfig.assets.login.primaryColor", "")
     );
     setValue(
       "secondaryColor",
-      get(realmInfo?.attributes, "assets.login.secondaryColor", "")
+      get(realmInfo?.attributes, "_providerConfig.assets.login.secondaryColor", "")
     );
     setValue(
       "backgroundColor",
-      get(realmInfo?.attributes, "assets.login.backgroundColor", "")
+      get(realmInfo?.attributes, "_providerConfig.assets.login.backgroundColor", "")
     );
-    setValue("css", get(realmInfo?.attributes, "assets.login.css", ""));
+    setValue("css", get(realmInfo?.attributes, "_providerConfig.assets.login.css", ""));
   }
 
   const [fullRealm, setFullRealm] = useState<RealmRepresentation>();
@@ -83,10 +83,10 @@ export const LoginStyles = () => {
       ...fullRealm,
       attributes: {
         ...fullRealm!.attributes,
-        "assets.login.primaryColor": primaryColor,
-        "assets.login.secondaryColor": secondaryColor,
-        "assets.login.backgroundColor": backgroundColor,
-        "assets.login.css": css,
+        "_providerConfig.assets.login.primaryColor": primaryColor,
+        "_providerConfig.assets.login.secondaryColor": secondaryColor,
+        "_providerConfig.assets.login.backgroundColor": backgroundColor,
+        "_providerConfig.assets.login.css": css,
       },
     };
     // save values

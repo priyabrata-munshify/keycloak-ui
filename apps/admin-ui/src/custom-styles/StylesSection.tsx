@@ -1,7 +1,5 @@
-// import React, { useState } from "react";
 import { PageSection, Tab, TabTitleText } from "@patternfly/react-core";
 import { useTranslation } from "react-i18next";
-// import { Link } from "react-router-dom";
 import { ViewHeader } from "../components/view-header/ViewHeader";
 import helpUrls from "../help-urls";
 import { useHistory } from "react-router-dom";
@@ -10,15 +8,9 @@ import {
   RoutableTabs,
 } from "../components/routable-tabs/RoutableTabs";
 import { StylesTab, toStyles } from "./routes/Styles";
-// import useOrgFetcher from "./useOrgFetcher";
-// import { KeycloakDataTable } from "../components/table-toolbar/KeycloakDataTable";
-// import { ListEmptyState } from "../components/list-empty-state/ListEmptyState";
-// import { NewOrgModal } from "./modals/NewOrgModal";
 import { useRealm } from "../context/realm-context/RealmContext";
 import { LoginStyles } from "./login/login-styles";
 import { GeneralStyles } from "./general/general-styles";
-// import type { OrgRepresentation } from "./routes";
-// import { useAlerts } from "../components/alert/Alerts";
 
 export default function StylesSection() {
   const { t } = useTranslation("styles");

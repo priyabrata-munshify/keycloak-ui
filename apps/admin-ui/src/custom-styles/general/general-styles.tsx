@@ -76,10 +76,10 @@ export const GeneralStyles = () => {
   async function loadRealm() {
     const realmInfo = await adminClient.realms.findOne({ realm });
     setFullRealm(realmInfo);
-    setValue("logoUrl", get(realmInfo?.attributes, "assets.logo.url", ""));
+    setValue("logoUrl", get(realmInfo?.attributes, "_providerConfig.assets.logo.url", ""));
     setValue(
       "faviconUrl",
-      get(realmInfo?.attributes, "assets.favicon.url", "")
+      get(realmInfo?.attributes, "_providerConfig.assets.favicon.url", "")
     );
   }
 
@@ -120,8 +120,8 @@ export const GeneralStyles = () => {
       ...fullRealm,
       attributes: {
         ...fullRealm!.attributes,
-        "assets.logo.url": logoUrl,
-        "assets.favicon.url": faviconUrl,
+        "_providerConfig.assets.logo.url": logoUrl,
+        "_providerConfig.assets.favicon.url": faviconUrl,
       },
     };
 

@@ -25,6 +25,12 @@
     <name>Keycloak Administration UI</name>
     <description>Keycloak Administration UI</description>
 
+    <parent>
+      <groupId>com.github.xgp</groupId>
+      <artifactId>oss-parent</artifactId>
+      <version>0.7</version>
+    </parent>
+  
     <properties>
         <frontend.maven.plugin.version>1.12.1</frontend.maven.plugin.version>
         <frontend.maven.plugin.nodeVersion>v18.9.0</frontend.maven.plugin.nodeVersion>
@@ -46,9 +52,8 @@
     <url>http://keycloak.org</url>
 
     <scm>
-        <connection>scm:git:git://github.com/keycloak/keycloak-admin-ui.git</connection>
-        <developerConnection>scm:git:git@github.com:keycloak/keycloak-admin-ui.git</developerConnection>
-        <url>https://github.com/keycloak/keycloak-admin-ui/tree/master/</url>
+        <connection>scm:git:git://github.com/p2-inc/keycloak-ui.git</connection>
+        <developerConnection>scm:git:git@github.com:p2-inc/keycloak-ui.git</developerConnection>
     </scm>
 
     <developers>
