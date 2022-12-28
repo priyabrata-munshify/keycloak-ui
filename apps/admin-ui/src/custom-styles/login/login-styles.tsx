@@ -57,17 +57,32 @@ export const LoginStyles = () => {
 
     setValue(
       "primaryColor",
-      get(realmInfo?.attributes, "_providerConfig.assets.login.primaryColor", "")
+      get(
+        realmInfo?.attributes,
+        "_providerConfig.assets.login.primaryColor",
+        ""
+      )
     );
     setValue(
       "secondaryColor",
-      get(realmInfo?.attributes, "_providerConfig.assets.login.secondaryColor", "")
+      get(
+        realmInfo?.attributes,
+        "_providerConfig.assets.login.secondaryColor",
+        ""
+      )
     );
     setValue(
       "backgroundColor",
-      get(realmInfo?.attributes, "_providerConfig.assets.login.backgroundColor", "")
+      get(
+        realmInfo?.attributes,
+        "_providerConfig.assets.login.backgroundColor",
+        ""
+      )
     );
-    setValue("css", get(realmInfo?.attributes, "_providerConfig.assets.login.css", ""));
+    setValue(
+      "css",
+      get(realmInfo?.attributes, "_providerConfig.assets.login.css", "")
+    );
   }
 
   const [fullRealm, setFullRealm] = useState<RealmRepresentation>();

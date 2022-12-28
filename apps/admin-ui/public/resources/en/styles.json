@@ -3,6 +3,7 @@
   "explain": "Customize the look and feel of your login, user management, organization portal and emails.",
   "general": "General",
   "login": "Login",
+  "email": "Emails",
   "logoUrl": "Logo URL",
   "faviconUrl": "Favicon URL",
   "formHelpLogoUrl": "Enter a valid URL to a hosted image file. The file must be publicly accessible via the web.",
