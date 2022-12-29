@@ -6,6 +6,8 @@
   "email": "Emails",
   "logoUrl": "Logo URL",
   "faviconUrl": "Favicon URL",
+  "htmlEmail": "HTML Template",
+  "textEmail": "Plain Text Template",
   "formHelpLogoUrl": "Enter a valid URL to a hosted image file. The file must be publicly accessible via the web.",
   "formHelpFaviconUrl": "Enter a valid URL to a hosted image file. The file must be publicly accessible via the web.",
   "formHelpLogoUrlInvalid": "A valid URL is required.",
@@ -17,5 +19,9 @@
   "primaryColorHelp": "Primary color to be used. Must be a hex value.",
   "secondaryColorHelp": "Secondary color to be used. Must be a hex value.",
   "backgroundColorHelp": "Background color to be used. Must be a hex value.",
-  "cssHelp": "Custom CSS. Will override any other values."
+  "cssHelp": "Custom CSS. Will override any other values.",
+  "formHelpHtmlTemplate": "HTML email template. Most email clients will show and render this version.",
+  "formHelpTextTemplate": "Plain text email.",
+  "formHelpHtmlTemplateInvalid": "Check your template for errors.",
+  "formHelpTextTemplateInvalid": "Check your template for errors."
 }
