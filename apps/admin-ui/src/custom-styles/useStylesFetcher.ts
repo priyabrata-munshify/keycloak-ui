@@ -99,13 +99,11 @@ export default function useStylesFetcher() {
   }): Promise<Errors> {
     const formData = new FormData();
     formData.append("template", templateBody);
+
     const resp = await fetchM(
       `${baseUrl}/emails/templates/${templateType}/${templateName}`,
       formData,
-      "PUT",
-      {
-        "Content-Type": "multipart/form-data",
-      }
+      "PUT"
     )
       .then((r) => {
         if (r.ok) return { error: false, message: "Email template updated." };

@@ -169,18 +169,16 @@ export const EmailTemplate = ({ realm }: EmailTemplateTabProps) => {
         templateBody: textEmail,
       });
 
-      if (!htmlResp.error || !textResp.error) {
-        return addAlert(
-          `Templates for the ${selectedTemplate} have been updated.`
-        );
+      if (htmlResp.error || textResp.error) {
+        if (htmlResp.error) {
+          setError("htmlEmail", { type: "custom", message: htmlResp.message });
+        }
+        if (textResp.error) {
+          setError("textEmail", { type: "custom", message: textResp.message });
+        }
+        throw new Error(htmlResp.error ? htmlResp.message : textResp.message);
       }
-      if (htmlResp.error) {
-        setError("htmlEmail", { type: "custom", message: htmlResp.message });
-      }
-      if (textResp.error) {
-        setError("textEmail", { type: "custom", message: textResp.message });
-      }
-      throw new Error(htmlResp.error ? htmlResp.message : textResp.message);
+      addAlert(`Templates for the ${selectedTemplate} have been updated.`);
     } catch (e) {
       console.error("Could not update the email templates.", e);
       addError("Failed to update the email templates.", e);
