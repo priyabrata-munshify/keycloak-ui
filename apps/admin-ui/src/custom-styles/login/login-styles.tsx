@@ -57,17 +57,32 @@ export const LoginStyles = () => {
 
     setValue(
       "primaryColor",
-      get(realmInfo?.attributes, "_providerConfig.assets.login.primaryColor", "")
+      get(
+        realmInfo?.attributes,
+        "_providerConfig.assets.login.primaryColor",
+        ""
+      )
     );
     setValue(
       "secondaryColor",
-      get(realmInfo?.attributes, "_providerConfig.assets.login.secondaryColor", "")
+      get(
+        realmInfo?.attributes,
+        "_providerConfig.assets.login.secondaryColor",
+        ""
+      )
     );
     setValue(
       "backgroundColor",
-      get(realmInfo?.attributes, "_providerConfig.assets.login.backgroundColor", "")
+      get(
+        realmInfo?.attributes,
+        "_providerConfig.assets.login.backgroundColor",
+        ""
+      )
     );
-    setValue("css", get(realmInfo?.attributes, "_providerConfig.assets.login.css", ""));
+    setValue(
+      "css",
+      get(realmInfo?.attributes, "_providerConfig.assets.login.css", "")
+    );
   }
 
   const [fullRealm, setFullRealm] = useState<RealmRepresentation>();
@@ -76,19 +91,53 @@ export const LoginStyles = () => {
     loadRealm();
   }, []);
 
+  const addOrRemoveItem = (
+    key: string,
+    value: string,
+    fullObj: RealmRepresentation
+  ) => {
+    let updatedObj = { ...fullObj };
+    const fullKeyPath = `_providerConfig.assets.login.${key}`;
+    if (value.length > 0) {
+      updatedObj = {
+        ...updatedObj,
+        attributes: {
+          ...fullRealm!.attributes,
+          [fullKeyPath]: value,
+        },
+      };
+    } else {
+      // @ts-ignore
+      delete updatedObj["attributes"][fullKeyPath];
+    }
+    return updatedObj;
+  };
+
+  const generateUpdatedRealm = () => {
+    const { primaryColor, secondaryColor, backgroundColor, css } = getValues();
+    let updatedRealm = {
+      ...fullRealm,
+    };
+
+    updatedRealm = addOrRemoveItem("primaryColor", primaryColor, updatedRealm);
+    updatedRealm = addOrRemoveItem(
+      "secondaryColor",
+      secondaryColor,
+      updatedRealm
+    );
+    updatedRealm = addOrRemoveItem(
+      "backgroundColor",
+      backgroundColor,
+      updatedRealm
+    );
+    updatedRealm = addOrRemoveItem("css", css, updatedRealm);
+
+    return updatedRealm;
+  };
+
   const save = async () => {
     // update realm with new attributes
-    const { primaryColor, secondaryColor, backgroundColor, css } = getValues();
-    const updatedRealm = {
-      ...fullRealm,
-      attributes: {
-        ...fullRealm!.attributes,
-        "_providerConfig.assets.login.primaryColor": primaryColor,
-        "_providerConfig.assets.login.secondaryColor": secondaryColor,
-        "_providerConfig.assets.login.backgroundColor": backgroundColor,
-        "_providerConfig.assets.login.css": css,
-      },
-    };
+    const updatedRealm = generateUpdatedRealm();
     // save values
     try {
       await adminClient.realms.update({ realm }, updatedRealm);
