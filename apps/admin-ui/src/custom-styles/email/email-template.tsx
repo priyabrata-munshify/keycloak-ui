@@ -86,27 +86,33 @@ export const EmailTemplate = ({ realm }: EmailTemplateTabProps) => {
       setValue("htmlEmail", "");
       setValue("textEmail", "");
       setIsLoading(true);
-      try {
-        setTemplateSelectDisabled(true);
-        // Call to get email templates
-        const htmlT = await getEmailTemplateValue({
-          templateType: "html",
-          templateName: selectedTemplateId,
-        });
-        const textT = await getEmailTemplateValue({
-          templateType: "text",
-          templateName: selectedTemplateId,
-        });
-        setValue("htmlEmail", htmlT);
-        setValue("textEmail", textT);
-      } catch (e) {
-        // TODO: error handle
+      setTemplateSelectDisabled(true);
+
+      // Call to get email templates
+      const htmlT = await getEmailTemplateValue({
+        templateType: "html",
+        templateName: selectedTemplateId,
+      });
+      const textT = await getEmailTemplateValue({
+        templateType: "text",
+        templateName: selectedTemplateId,
+      });
+
+      if (htmlT.error) {
+        addError(htmlT.message, "error");
+      } else {
+        setValue("htmlEmail", htmlT.message);
       }
-      setTemplateSelectDisabled(false);
+      if (textT.error) {
+        addError(textT.message, "error");
+      } else {
+        setValue("textEmail", textT.message);
+      }
     } else {
       setValue("htmlEmail", "");
       setValue("textEmail", "");
     }
+    setTemplateSelectDisabled(false);
     setIsLoading(false);
   };
 

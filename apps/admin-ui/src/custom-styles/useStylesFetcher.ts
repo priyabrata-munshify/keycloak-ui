@@ -48,7 +48,7 @@ export default function useStylesFetcher() {
         Authorization: `Bearer ${token}`,
         ...headers,
       },
-      body: JSON.stringify(body),
+      body: body,
       redirect: "follow",
     });
   }
@@ -70,16 +70,19 @@ export default function useStylesFetcher() {
   }: {
     templateType: "html" | "text";
     templateName: string;
-  }): Promise<string | Error> {
+  }): Promise<{ error: boolean; message: string }> {
     const resp = await fetchG(
       `${baseUrl}/emails/templates/${templateType}/${templateName}`,
       { Accept: "text/plain" }
     )
-      .then((r) => {
-        if (r.ok) return r.text();
+      .then(async (r) => {
+        if (r.ok) return { error: false, message: await r.text() };
         throw new Error();
       })
-      .catch(() => new Error("Error pulling email template value."));
+      .catch(() => ({
+        error: true,
+        message: `Error pulling email template value for ${templateName} (${templateType})`,
+      }));
 
     return resp;
   }
@@ -94,10 +97,15 @@ export default function useStylesFetcher() {
     templateName: string;
     templateBody: string;
   }): Promise<Errors> {
+    const formData = new FormData();
+    formData.append("template", templateBody);
     const resp = await fetchM(
       `${baseUrl}/emails/templates/${templateType}/${templateName}`,
-      templateBody,
-      "PUT"
+      formData,
+      "PUT",
+      {
+        "Content-Type": "multipart/form-data",
+      }
     )
       .then((r) => {
         if (r.ok) return { error: false, message: "Email template updated." };
