@@ -117,6 +117,9 @@ export const GeneralStyles = () => {
     control,
   });
 
+  const logoUrl = getValues("logoUrl");
+  const faviconUrl = getValues("faviconUrl");
+
   const save = async () => {
     // update realm with new attributes
     const updatedRealm = {
@@ -128,6 +131,15 @@ export const GeneralStyles = () => {
       },
     };
 
+    if (logoUrl.length === 0) {
+      //@ts-ignore
+      delete updatedRealm["attributes"]["_providerConfig.assets.logo.url"];
+    }
+    if (faviconUrl.length === 0) {
+      //@ts-ignore
+      delete updatedRealm["attributes"]["_providerConfig.assets.favicon.url"];
+    }
+
     // save values
     try {
       await adminClient.realms.update({ realm }, updatedRealm);
@@ -137,9 +149,6 @@ export const GeneralStyles = () => {
       addError("Failed to update realm.", e);
     }
   };
-
-  const logoUrl = getValues("logoUrl");
-  const faviconUrl = getValues("faviconUrl");
 
   const LogoUrlBrand = (
     <LogoContainer title="Logo Preview">
