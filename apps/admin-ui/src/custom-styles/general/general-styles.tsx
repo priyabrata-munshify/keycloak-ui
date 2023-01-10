@@ -76,7 +76,10 @@ export const GeneralStyles = () => {
   async function loadRealm() {
     const realmInfo = await adminClient.realms.findOne({ realm });
     setFullRealm(realmInfo);
-    setValue("logoUrl", get(realmInfo?.attributes, "_providerConfig.assets.logo.url", ""));
+    setValue(
+      "logoUrl",
+      get(realmInfo?.attributes, "_providerConfig.assets.logo.url", "")
+    );
     setValue(
       "faviconUrl",
       get(realmInfo?.attributes, "_providerConfig.assets.favicon.url", "")
