@@ -7,6 +7,7 @@ import {
   Select,
   SelectOption,
   SelectVariant,
+  Spinner,
   ValidatedOptions,
 } from "@patternfly/react-core";
 import { BaseSyntheticEvent, ChangeEvent, useEffect, useState } from "react";
@@ -42,6 +43,8 @@ export const EmailTemplate = ({ realm }: EmailTemplateTabProps) => {
   const { getEmailTemplates, getEmailTemplateValue, updateEmailTemplateValue } =
     useStylesFetcher();
   const [emailTemplates, setEmailTemplates] = useState<EmailTemplateMap>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const {
     register,
@@ -63,10 +66,6 @@ export const EmailTemplate = ({ realm }: EmailTemplateTabProps) => {
 
   async function getEmailTemplatesInfo() {
     const emailTemplates = await getEmailTemplates();
-    console.log(
-      "🚀 ~ file: email-template.tsx:27 ~ getEmailTemplatesInfo ~ emailTemplates",
-      emailTemplates
-    );
     if (!emailTemplates.error) {
       setTemplateSelectDisabled(false);
       setEmailTemplates(emailTemplates);
@@ -84,6 +83,9 @@ export const EmailTemplate = ({ realm }: EmailTemplateTabProps) => {
 
   const getEmailTemplateValues = async () => {
     if (selectedTemplateId) {
+      setValue("htmlEmail", "");
+      setValue("textEmail", "");
+      setIsLoading(true);
       try {
         setTemplateSelectDisabled(true);
         // Call to get email templates
@@ -105,6 +107,7 @@ export const EmailTemplate = ({ realm }: EmailTemplateTabProps) => {
       setValue("htmlEmail", "");
       setValue("textEmail", "");
     }
+    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -147,6 +150,8 @@ export const EmailTemplate = ({ realm }: EmailTemplateTabProps) => {
     const { htmlEmail, textEmail } = getValues();
 
     try {
+      setIsSaving(true);
+      setTemplateSelectDisabled(true);
       const htmlResp = await updateEmailTemplateValue({
         templateType: "html",
         templateName: selectedTemplateId!,
@@ -174,6 +179,8 @@ export const EmailTemplate = ({ realm }: EmailTemplateTabProps) => {
       console.error("Could not update the email templates.", e);
       addError("Failed to update the email templates.", e);
     }
+    setIsSaving(false);
+    setTemplateSelectDisabled(false);
   };
 
   const reset = async () => {
@@ -205,7 +212,12 @@ export const EmailTemplate = ({ realm }: EmailTemplateTabProps) => {
       <Form className="pf-u-mt-lg pf-u-pb-lg">
         <FormGroup
           fieldId="emailTemplateSelect"
-          label="Select email template to customize"
+          label={
+            <div>
+              Select email template to customize{" "}
+              {isLoading && <Spinner size="sm" />}
+            </div>
+          }
         >
           <Select
             variant={SelectVariant.single}
@@ -246,6 +258,8 @@ export const EmailTemplate = ({ realm }: EmailTemplateTabProps) => {
             id="htmlEmail"
             data-testid="htmlEmail"
             name="htmlEmail"
+            rows={7}
+            isDisabled={templateSelectDisabled}
             validated={
               errors.htmlEmail
                 ? ValidatedOptions.error
@@ -274,6 +288,8 @@ export const EmailTemplate = ({ realm }: EmailTemplateTabProps) => {
             id="textEmail"
             data-testid="textEmail"
             name="textEmail"
+            rows={7}
+            isDisabled={templateSelectDisabled}
             validated={
               errors.textEmail
                 ? ValidatedOptions.error
@@ -286,8 +302,7 @@ export const EmailTemplate = ({ realm }: EmailTemplateTabProps) => {
           name="emailTemplates"
           save={save}
           reset={reset}
-          isActive={!!selectedTemplateId}
-          // isActive={!!selectedTemplateId && isDirty}
+          isActive={!!selectedTemplateId && !isSaving}
         />
       </Form>
     </PageSection>

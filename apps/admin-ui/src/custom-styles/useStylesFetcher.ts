@@ -18,7 +18,7 @@ export default function useStylesFetcher() {
   const authUrl = environment.authServerUrl;
   const baseUrl = `${authUrl}/realms/${realmName}`;
 
-  async function fetchG(url: string) {
+  async function fetchG(url: string, headers = {}) {
     const token = await adminClient.getAccessToken();
     return await fetch(url, {
       method: "GET",
@@ -27,20 +27,26 @@ export default function useStylesFetcher() {
       headers: {
         Accept: "application/json",
         Authorization: `Bearer ${token}`,
+        ...headers,
       },
       redirect: "follow",
     });
   }
 
-  async function fetchM(url: string, body: any, verb: "POST" | "PUT") {
+  async function fetchM(
+    url: string,
+    body: any,
+    verb: "POST" | "PUT",
+    headers: RequestInit["headers"] = {}
+  ) {
     const token = await adminClient.getAccessToken();
     return await fetch(url, {
       method: verb,
       mode: "cors",
       cache: "no-cache",
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
+        ...headers,
       },
       body: JSON.stringify(body),
       redirect: "follow",
@@ -49,31 +55,11 @@ export default function useStylesFetcher() {
 
   // GET /auth/realms/{realm}/emails/templates
   async function getEmailTemplates(): Promise<EmailTemplateMap> {
-    // TEMP until fixed
-    return {
-      "email-verification": "Verification",
-      "event-login_error": "Login error",
-      "event-update_password": "Update Password",
-      executeActions: "Execute Required Actions",
-      "password-reset": "Password Reset",
-      "email-update-confirmation": "Update confirmation",
-      "email-verification-with-code": "Verification with code",
-      "event-remove_totp": "Remove OTP",
-      "event-update_totp": "Update OTP",
-      "identity-provider-link": "Link to Identity Provider",
-      "magic-link-email": "Magic link",
-      "invitation.email": "Organization invitation",
-    };
-
     const resp = await fetchG(`${baseUrl}/emails/templates`)
       .then((r) => r.json())
       .catch(() => ({
         error: "Error pulling email templates.",
       }));
-    console.log(
-      "🚀 ~ file: useStylesFetcher.ts:30 ~ getEmailTemplates ~ resp",
-      resp
-    );
     return resp;
   }
 
@@ -84,11 +70,15 @@ export default function useStylesFetcher() {
   }: {
     templateType: "html" | "text";
     templateName: string;
-  }): Promise<string> {
+  }): Promise<string | Error> {
     const resp = await fetchG(
-      `${baseUrl}/emails/templates/${templateType}/${templateName}`
+      `${baseUrl}/emails/templates/${templateType}/${templateName}`,
+      { Accept: "text/plain" }
     )
-      .then((r) => r.json())
+      .then((r) => {
+        if (r.ok) return r.text();
+        throw new Error();
+      })
       .catch(() => new Error("Error pulling email template value."));
 
     return resp;
