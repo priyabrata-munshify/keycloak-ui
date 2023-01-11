@@ -8,12 +8,12 @@ import {
   FormGroup,
   InputGroup,
 } from "@patternfly/react-core";
+import GroupRepresentation from "@keycloak/keycloak-admin-client/lib/defs/groupRepresentation";
 
 import type { ComponentProps } from "./components";
 import { HelpItem } from "../help-enabler/HelpItem";
 import { GroupPickerDialog } from "../group/GroupPickerDialog";
 import { convertToName } from "./DynamicComponents";
-import GroupRepresentation from "libs/keycloak-admin-client/lib/defs/groupRepresentation";
 
 export const GroupComponent = ({ name, label, helpText }: ComponentProps) => {
   const { t } = useTranslation("dynamic");
