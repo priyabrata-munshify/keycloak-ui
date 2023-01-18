@@ -88,10 +88,6 @@ export const EmailTemplate = ({ realm, refresh }: EmailTemplateTabProps) => {
   const [templateSelectDisabled, setTemplateSelectDisabled] = useState(
     !hasEmailThemeSettingsEnabled
   );
-  console.log(
-    "🚀 ~ file: email-template.tsx:89 ~ EmailTemplate ~ templateSelectDisabled",
-    templateSelectDisabled
-  );
 
   const getEmailTemplateValues = async () => {
     if (selectedTemplateId) {
