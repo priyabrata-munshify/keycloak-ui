@@ -1,6 +1,7 @@
 import RealmRepresentation from "@keycloak/keycloak-admin-client/lib/defs/realmRepresentation";
 import {
   Alert,
+  Button,
   Form,
   FormGroup,
   PageSection,
@@ -16,12 +17,14 @@ import { useTranslation } from "react-i18next";
 import { useAlerts } from "../../components/alert/Alerts";
 import { HelpItem } from "../../components/help-enabler/HelpItem";
 import { KeycloakTextArea } from "../../components/keycloak-text-area/KeycloakTextArea";
+import { useAdminClient } from "../../context/auth/AdminClient";
+import { useRealm } from "../../context/realm-context/RealmContext";
 import { SaveReset } from "../components/SaveReset";
 import useStylesFetcher from "../useStylesFetcher";
 
 type EmailTemplateTabProps = {
   realm: RealmRepresentation;
-  // refresh: () => void;
+  refresh: () => void;
 };
 
 type EmailTemplateFormType = {
@@ -37,7 +40,9 @@ interface EmailTemplateMap {
   [key: string]: string;
 }
 
-export const EmailTemplate = ({ realm }: EmailTemplateTabProps) => {
+export const EmailTemplate = ({ realm, refresh }: EmailTemplateTabProps) => {
+  const { adminClient } = useAdminClient();
+  const { realm: realmName } = useRealm();
   const { t } = useTranslation("styles");
   const { addAlert, addError } = useAlerts();
   const { getEmailTemplates, getEmailTemplateValue, updateEmailTemplateValue } =
@@ -45,6 +50,7 @@ export const EmailTemplate = ({ realm }: EmailTemplateTabProps) => {
   const [emailTemplates, setEmailTemplates] = useState<EmailTemplateMap>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [updatingEmailTheme, setUpdatingEmailTheme] = useState(false);
 
   const {
     register,
@@ -67,7 +73,7 @@ export const EmailTemplate = ({ realm }: EmailTemplateTabProps) => {
   async function getEmailTemplatesInfo() {
     const emailTemplates = await getEmailTemplates();
     if (!emailTemplates.error) {
-      setTemplateSelectDisabled(false);
+      setTemplateSelectDisabled(!hasEmailThemeSettingsEnabled);
       setEmailTemplates(emailTemplates);
     }
   }
@@ -79,7 +85,13 @@ export const EmailTemplate = ({ realm }: EmailTemplateTabProps) => {
   const [isTemplateSelectOpen, setIsTemplateSelectOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string>();
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>();
-  const [templateSelectDisabled, setTemplateSelectDisabled] = useState(true);
+  const [templateSelectDisabled, setTemplateSelectDisabled] = useState(
+    !hasEmailThemeSettingsEnabled
+  );
+  console.log(
+    "🚀 ~ file: email-template.tsx:89 ~ EmailTemplate ~ templateSelectDisabled",
+    templateSelectDisabled
+  );
 
   const getEmailTemplateValues = async () => {
     if (selectedTemplateId) {
@@ -192,21 +204,35 @@ export const EmailTemplate = ({ realm }: EmailTemplateTabProps) => {
     resetForm();
   };
 
+  const updateRealmTheme = async (value: string = "attributes") => {
+    setUpdatingEmailTheme(true);
+    await adminClient.realms.update(
+      { realm: realmName },
+      { ...realm, emailTheme: value }
+    );
+    addAlert('Email theme is now set to "attributes".');
+    refresh();
+    setTimeout(() => setUpdatingEmailTheme(false), 5000);
+    setTemplateSelectDisabled(false);
+  };
+
   return (
     <PageSection variant="light" className="keycloak__form">
       {!hasEmailThemeSettingsEnabled && (
         <Alert variant="warning" title="Realm setting change is required">
           <p>
             Your email theme must be set to <code>attributes</code> for these
-            changes to take effect.{" "}
-            <a
-              href="https://phasetwo.io/docs/getting-started/email"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Learn how.
-            </a>
+            changes to take effect.
           </p>
+          <Button
+            isSmall
+            className="pf-u-mt-sm"
+            onClick={() => updateRealmTheme()}
+            isLoading={updatingEmailTheme}
+            isDisabled={updatingEmailTheme}
+          >
+            {updatingEmailTheme ? "Activating..." : "Activate"}
+          </Button>
         </Alert>
       )}
       <p className="pf-u-mt-lg">

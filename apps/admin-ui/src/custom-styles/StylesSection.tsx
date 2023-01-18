@@ -7,7 +7,7 @@ import {
   routableTab,
   RoutableTabs,
 } from "../components/routable-tabs/RoutableTabs";
-import { StylesParams, StylesTab, toStyles } from "./routes/Styles";
+import { StylesTab, toStyles } from "./routes/Styles";
 import { LoginStyles } from "./login/login-styles";
 import { GeneralStyles } from "./general/general-styles";
 import { EmailTemplate } from "./email/email-template";
@@ -15,23 +15,22 @@ import { EmailTemplate } from "./email/email-template";
 import type RealmRepresentation from "@keycloak/keycloak-admin-client/lib/defs/realmRepresentation";
 import { KeycloakSpinner } from "../components/keycloak-spinner/KeycloakSpinner";
 import { useAdminClient, useFetch } from "../context/auth/AdminClient";
-import { useParams } from "react-router-dom";
 import { useState } from "react";
+import { useRealm } from "../context/realm-context/RealmContext";
 
 export default function StylesSection() {
   const { t } = useTranslation("styles");
   const history = useHistory();
 
   const { adminClient } = useAdminClient();
-  const { realm: realmName } = useParams<StylesParams>();
+  const { realm: realmName } = useRealm();
   const [realm, setRealm] = useState<RealmRepresentation>();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [key, setKey] = useState(0);
 
-  // const refresh = () => {
-  //   setKey(key + 1);
-  //   setRealm(undefined);
-  // };
+  const refresh = () => {
+    setKey(key + 1);
+  };
 
   useFetch(() => adminClient.realms.findOne({ realm: realmName }), setRealm, [
     key,
@@ -83,7 +82,7 @@ export default function StylesSection() {
             title={<TabTitleText>{t("email")}</TabTitleText>}
             {...route("email")}
           >
-            <EmailTemplate realm={realm} />
+            <EmailTemplate realm={realm} refresh={refresh} />
           </Tab>
         </RoutableTabs>
       </PageSection>
