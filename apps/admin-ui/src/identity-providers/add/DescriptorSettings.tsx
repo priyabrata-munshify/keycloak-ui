@@ -165,7 +165,7 @@ const Fields = ({ readOnly }: DescriptorSettingsProps) => {
       >
         <Controller
           name="config.nameIDPolicyFormat"
-          defaultValue={t("persistent")}
+          defaultValue={"urn:oasis:names:tc:SAML:2.0:nameid-format:persistent"}
           control={control}
           render={({ onChange, value }) => (
             <Select
