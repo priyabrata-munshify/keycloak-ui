@@ -1,6 +1,5 @@
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { useForm } from "react-hook-form";
+import type { RealmEventsConfigRepresentation } from "@keycloak/keycloak-admin-client/lib/defs/realmEventsConfigRepresentation";
+import type RealmRepresentation from "@keycloak/keycloak-admin-client/lib/defs/realmRepresentation";
 import {
   AlertVariant,
   ButtonVariant,
@@ -8,21 +7,22 @@ import {
   Tab,
   Tabs,
   TabTitleText,
-  Title,
 } from "@patternfly/react-core";
+import { isEqual } from "lodash-es";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 
-import type RealmRepresentation from "@keycloak/keycloak-admin-client/lib/defs/realmRepresentation";
-import type { RealmEventsConfigRepresentation } from "@keycloak/keycloak-admin-client/lib/defs/realmEventsConfigRepresentation";
-import { FormAccess } from "../../components/form-access/FormAccess";
-import { useRealm } from "../../context/realm-context/RealmContext";
 import { useAlerts } from "../../components/alert/Alerts";
-import { useFetch, useAdminClient } from "../../context/auth/AdminClient";
-import { EventConfigForm, EventsType } from "./EventConfigForm";
 import { useConfirmDialog } from "../../components/confirm-dialog/ConfirmDialog";
-import { EventsTypeTable, EventType } from "./EventsTypeTable";
-import { AddEventTypesDialog } from "./AddEventTypesDialog";
-import { EventListenersForm } from "./EventListenersForm";
+import { FormAccess } from "../../components/form-access/FormAccess";
+import { useAdminClient, useFetch } from "../../context/auth/AdminClient";
+import { useRealm } from "../../context/realm-context/RealmContext";
 import { convertToFormValues } from "../../util";
+import { AddEventTypesDialog } from "./AddEventTypesDialog";
+import { EventConfigForm, EventsType } from "./EventConfigForm";
+import { EventListenersForm } from "./EventListenersForm";
+import { EventsTypeTable, EventType } from "./EventsTypeTable";
 
 type EventsTabProps = {
   realm: RealmRepresentation;
@@ -35,7 +35,7 @@ type EventsConfigForm = RealmEventsConfigRepresentation & {
 export const EventsTab = ({ realm }: EventsTabProps) => {
   const { t } = useTranslation("realm-settings");
   const form = useForm<EventsConfigForm>();
-  const { setValue, handleSubmit, watch } = form;
+  const { setValue, handleSubmit } = form;
 
   const [key, setKey] = useState(0);
   const refresh = () => setKey(new Date().getTime());
@@ -53,7 +53,7 @@ export const EventsTab = ({ realm }: EventsTabProps) => {
 
   const setupForm = (eventConfig?: EventsConfigForm) => {
     setEvents(eventConfig);
-    convertToFormValues(eventConfig, setValue);
+    convertToFormValues(eventConfig || {}, setValue);
   };
 
   const clear = async (type: EventsType) => {
@@ -96,8 +96,10 @@ export const EventsTab = ({ realm }: EventsTabProps) => {
   );
 
   const save = async (config: EventsConfigForm) => {
-    const updatedEventListener =
-      events?.eventsListeners !== config.eventsListeners;
+    const updatedEventListener = !isEqual(
+      events?.eventsListeners,
+      config.eventsListeners
+    );
 
     const { adminEventsExpiration, ...eventConfig } = config;
     if (realm.attributes?.adminEventsExpiration !== adminEventsExpiration) {
@@ -145,7 +147,6 @@ export const EventsTab = ({ realm }: EventsTabProps) => {
     refresh();
   };
 
-  const eventsEnabled: boolean = watch("eventsEnabled") || false;
   return (
     <>
       <DeleteConfirm />
@@ -181,11 +182,6 @@ export const EventsTab = ({ realm }: EventsTabProps) => {
           data-testid="rs-events-tab"
         >
           <PageSection>
-            <Title headingLevel="h1" size="xl">
-              {t("userEventsConfig")}
-            </Title>
-          </PageSection>
-          <PageSection>
             <FormAccess
               role="manage-events"
               isHorizontal
@@ -199,20 +195,14 @@ export const EventsTab = ({ realm }: EventsTabProps) => {
               />
             </FormAccess>
           </PageSection>
-          {eventsEnabled && (
+          {events?.eventsEnabled && (
             <PageSection>
               <EventsTypeTable
                 key={tableKey}
                 addTypes={() => setAddEventType(true)}
-                loader={() =>
-                  Promise.resolve(
-                    events?.enabledEventTypes?.map((id) => {
-                      return { id };
-                    }) || []
-                  )
-                }
+                eventTypes={events.enabledEventTypes || []}
                 onDelete={(value) => {
-                  const enabledEventTypes = events?.enabledEventTypes?.filter(
+                  const enabledEventTypes = events.enabledEventTypes?.filter(
                     (e) => e !== value.id
                   );
                   addEvents(enabledEventTypes);
@@ -227,11 +217,6 @@ export const EventsTab = ({ realm }: EventsTabProps) => {
           title={<TabTitleText>{t("adminEventsSettings")}</TabTitleText>}
           data-testid="rs-admin-events-tab"
         >
-          <PageSection>
-            <Title headingLevel="h4" size="xl">
-              {t("adminEventsConfig")}
-            </Title>
-          </PageSection>
           <PageSection>
             <FormAccess
               role="manage-events"

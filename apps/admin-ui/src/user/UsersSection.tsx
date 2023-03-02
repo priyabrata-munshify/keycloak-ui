@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { useHistory } from "react-router-dom";
-import { Link, useNavigate } from "react-router-dom-v5-compat";
+import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   AlertVariant,
@@ -34,6 +33,7 @@ import type { IRowData } from "@patternfly/react-table";
 import type ComponentRepresentation from "@keycloak/keycloak-admin-client/lib/defs/componentRepresentation";
 import type UserRepresentation from "@keycloak/keycloak-admin-client/lib/defs/userRepresentation";
 import type RealmRepresentation from "@keycloak/keycloak-admin-client/lib/defs/realmRepresentation";
+import { useServerInfo } from "../context/server-info/ServerInfoProvider";
 import { useAlerts } from "../components/alert/Alerts";
 import { useConfirmDialog } from "../components/confirm-dialog/ConfirmDialog";
 import { ListEmptyState } from "../components/list-empty-state/ListEmptyState";
@@ -49,8 +49,8 @@ import { KeycloakSpinner } from "../components/keycloak-spinner/KeycloakSpinner"
 import { PermissionsTab } from "../components/permission-tab/PermissionTab";
 import { toUsers, UserTab } from "./routes/Users";
 import {
-  routableTab,
   RoutableTabs,
+  useRoutableTab,
 } from "../components/routable-tabs/RoutableTabs";
 import { useAccess } from "../context/access/Access";
 import { BruteUser, findUsers } from "../components/role-mapping/resource";
@@ -62,19 +62,24 @@ export default function UsersSection() {
   const { adminClient } = useAdminClient();
   const { addAlert, addError } = useAlerts();
   const { realm: realmName } = useRealm();
-  const history = useHistory();
   const navigate = useNavigate();
   const [userStorage, setUserStorage] = useState<ComponentRepresentation[]>();
   const [searchUser, setSearchUser] = useState<string>();
   const [realm, setRealm] = useState<RealmRepresentation | undefined>();
   const [kebabOpen, setKebabOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<UserRepresentation[]>([]);
+  const { profileInfo } = useServerInfo();
 
   const [key, setKey] = useState(0);
   const refresh = () => setKey(key + 1);
 
   const { hasAccess } = useAccess();
-  const isManager = hasAccess("manage-users");
+
+  // Only needs query-users access to attempt add/delete of users.
+  // This is because the user could have fine-grained access to users
+  // of a group.  There is no way to know this without searching the
+  // permissions of every group.
+  const isManager = hasAccess("query-users");
 
   useFetch(
     async () => {
@@ -88,7 +93,7 @@ export default function UsersSection() {
           adminClient.realms.findOne({ realm: realmName }),
         ]);
       } catch {
-        return [[{}], undefined] as [
+        return [[], {}] as [
           ComponentRepresentation[],
           RealmRepresentation | undefined
         ];
@@ -100,6 +105,17 @@ export default function UsersSection() {
     },
     []
   );
+
+  const useTab = (tab: UserTab) =>
+    useRoutableTab(
+      toUsers({
+        realm: realmName,
+        tab,
+      })
+    );
+
+  const listTab = useTab("list");
+  const permissionsTab = useTab("permissions");
 
   const UserDetailLink = (user: UserRepresentation) => (
     <Link
@@ -185,7 +201,7 @@ export default function UsersSection() {
         )}
         {user.bruteForceStatus?.disabled && (
           <Label key={user.id} color="orange" icon={<WarningTriangleIcon />}>
-            {t("temporaryDisabled")}
+            {t("temporaryLocked")}
           </Label>
         )}
         {user.enabled && !user.bruteForceStatus?.disabled && "—"}
@@ -272,15 +288,6 @@ export default function UsersSection() {
     </>
   );
 
-  const route = (tab: UserTab) =>
-    routableTab({
-      to: toUsers({
-        realm: realmName,
-        tab,
-      }),
-      history,
-    });
-
   return (
     <>
       <DeleteConfirm />
@@ -309,7 +316,7 @@ export default function UsersSection() {
             id="list"
             data-testid="listTab"
             title={<TabTitleText>{t("userList")}</TabTitleText>}
-            {...route("list")}
+            {...listTab}
           >
             <KeycloakDataTable
               key={key}
@@ -411,14 +418,18 @@ export default function UsersSection() {
               ]}
             />
           </Tab>
-          <Tab
-            id="permissions"
-            data-testid="permissionsTab"
-            title={<TabTitleText>{t("common:permissions")}</TabTitleText>}
-            {...route("permissions")}
-          >
-            <PermissionsTab type="users" />
-          </Tab>
+          {!profileInfo?.disabledFeatures?.includes(
+            "ADMIN_FINE_GRAINED_AUTHZ"
+          ) && (
+            <Tab
+              id="permissions"
+              data-testid="permissionsTab"
+              title={<TabTitleText>{t("common:permissions")}</TabTitleText>}
+              {...permissionsTab}
+            >
+              <PermissionsTab type="users" />
+            </Tab>
+          )}
         </RoutableTabs>
       </PageSection>
     </>

@@ -1,6 +1,6 @@
-import PartialExportModal from "../support/pages/admin_console/configure/realm_settings/PartialExportModal";
-import RealmSettings from "../support/pages/admin_console/configure/realm_settings/RealmSettings";
-import SidebarPage from "../support/pages/admin_console/SidebarPage";
+import PartialExportModal from "../support/pages/admin-ui/configure/realm_settings/PartialExportModal";
+import RealmSettings from "../support/pages/admin-ui/configure/realm_settings/RealmSettings";
+import SidebarPage from "../support/pages/admin-ui/SidebarPage";
 import LoginPage from "../support/pages/LoginPage";
 import adminClient from "../support/util/AdminClient";
 import { keycloakBefore } from "../support/util/keycloak_hooks";
@@ -17,8 +17,8 @@ describe("Partial realm export", () => {
   const realmSettings = new RealmSettings();
 
   beforeEach(() => {
-    keycloakBefore();
     loginPage.logIn();
+    keycloakBefore();
     sidebarPage.goToRealm(REALM_NAME).goToRealmSettings();
     realmSettings.clickActionMenu();
     modal.open();

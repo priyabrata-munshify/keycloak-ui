@@ -1,4 +1,5 @@
-import { useState } from "react";
+import type UserProfileConfig from "@keycloak/keycloak-admin-client/lib/defs/userProfileConfig";
+import type { UserProfileAttribute } from "@keycloak/keycloak-admin-client/lib/defs/userProfileConfig";
 import {
   ActionGroup,
   AlertVariant,
@@ -6,30 +7,47 @@ import {
   Form,
   PageSection,
 } from "@patternfly/react-core";
+import { flatten } from "flat";
+import { useState } from "react";
 import { FormProvider, useForm, useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { useParams } from "react-router-dom";
-import { Link, useNavigate } from "react-router-dom-v5-compat";
+import { Link, useNavigate } from "react-router-dom";
+
+import { useAlerts } from "../components/alert/Alerts";
 import { ScrollForm } from "../components/scroll-form/ScrollForm";
-import type UserProfileConfig from "@keycloak/keycloak-admin-client/lib/defs/userProfileConfig";
+import { ViewHeader } from "../components/view-header/ViewHeader";
+import { useAdminClient, useFetch } from "../context/auth/AdminClient";
+import { convertToFormValues } from "../util";
+import { useParams } from "../utils/useParams";
+import type { AttributeParams } from "./routes/Attribute";
+import { toUserProfile } from "./routes/UserProfile";
+import { AttributeAnnotations } from "./user-profile/attribute/AttributeAnnotations";
 import { AttributeGeneralSettings } from "./user-profile/attribute/AttributeGeneralSettings";
 import { AttributePermission } from "./user-profile/attribute/AttributePermission";
 import { AttributeValidations } from "./user-profile/attribute/AttributeValidations";
-import { toUserProfile } from "./routes/UserProfile";
-import { ViewHeader } from "../components/view-header/ViewHeader";
-import { AttributeAnnotations } from "./user-profile/attribute/AttributeAnnotations";
-import { useAdminClient, useFetch } from "../context/auth/AdminClient";
-import { useAlerts } from "../components/alert/Alerts";
 import { UserProfileProvider } from "./user-profile/UserProfileContext";
-import type { UserProfileAttribute } from "@keycloak/keycloak-admin-client/lib/defs/userProfileConfig";
-import type { AttributeParams } from "./routes/Attribute";
-import type { KeyValueType } from "../components/key-value-form/key-value-convert";
-import { convertToFormValues } from "../util";
-import { flatten } from "flat";
 
 import "./realm-settings-section.css";
 
-type UserProfileAttributeType = UserProfileAttribute & Attribute & Permission;
+type IndexedAnnotations = {
+  key: string;
+  value?: Record<string, unknown>;
+};
+
+export type IndexedValidations = {
+  key: string;
+  value?: Record<string, unknown>;
+};
+
+type UserProfileAttributeType = Omit<
+  UserProfileAttribute,
+  "validations" | "annotations"
+> &
+  Attribute &
+  Permission & {
+    validations: IndexedValidations[];
+    annotations: IndexedAnnotations[];
+  };
 
 type Attribute = {
   roles: string[];
@@ -55,6 +73,8 @@ type PermissionEdit = [
     userEdit: boolean;
   }
 ];
+
+export const USERNAME_EMAIL = ["username", "email"];
 
 const CreateAttributeFormContent = ({
   save,
@@ -101,18 +121,12 @@ const CreateAttributeFormContent = ({
 export default function NewAttributeSettings() {
   const { realm, attributeName } = useParams<AttributeParams>();
   const { adminClient } = useAdminClient();
-  const form = useForm<UserProfileConfig>({ shouldUnregister: false });
+  const form = useForm<UserProfileAttributeType>();
   const { t } = useTranslation("realm-settings");
   const navigate = useNavigate();
   const { addAlert, addError } = useAlerts();
   const [config, setConfig] = useState<UserProfileConfig | null>(null);
   const editMode = attributeName ? true : false;
-
-  const convert = (obj: Record<string, unknown>[] | undefined) =>
-    Object.entries(obj || []).map(([key, value]) => ({
-      key,
-      value,
-    }));
 
   useFetch(
     () => adminClient.users.getProfile(),
@@ -132,27 +146,39 @@ export default function NewAttributeSettings() {
       convertToFormValues(values, form.setValue);
       Object.entries(
         flatten<any, any>({ permissions, selector, required }, { safe: true })
-      ).map(([key, value]) => form.setValue(key, value));
-      form.setValue("annotations", convert(annotations));
-      form.setValue("validations", convert(validations));
+      ).map(([key, value]) => form.setValue(key as any, value));
+      form.setValue(
+        "annotations",
+        Object.entries(annotations || {}).map(([key, value]) => ({
+          key,
+          value,
+        }))
+      );
+      form.setValue(
+        "validations",
+        Object.entries(validations || {}).map(([key, value]) => ({
+          key,
+          value,
+        }))
+      );
       form.setValue("isRequired", required !== undefined);
     },
     []
   );
 
   const save = async (profileConfig: UserProfileAttributeType) => {
-    const validations = profileConfig.validations?.reduce(
-      (prevValidations: any, currentValidations: any) => {
+    const validations = profileConfig.validations.reduce(
+      (prevValidations, currentValidations) => {
         prevValidations[currentValidations.key] =
           currentValidations.value?.length === 0
             ? {}
             : currentValidations.value;
         return prevValidations;
       },
-      {}
+      {} as Record<string, unknown>
     );
 
-    const annotations = (profileConfig.annotations! as KeyValueType[]).reduce(
+    const annotations = profileConfig.annotations.reduce(
       (obj, item) => Object.assign(obj, { [item.key]: item.value }),
       {}
     );
@@ -169,15 +195,15 @@ export default function NewAttributeSettings() {
             ...attribute,
             name: attributeName,
             displayName: profileConfig.displayName!,
-            validations,
             selector: profileConfig.selector,
             permissions: profileConfig.permissions!,
             annotations,
+            validations,
           },
           profileConfig.isRequired
             ? { required: profileConfig.required }
             : undefined,
-          profileConfig.group ? { group: profileConfig.group } : undefined
+          profileConfig.group ? { group: profileConfig.group } : { group: null }
         );
       });
 
@@ -188,7 +214,6 @@ export default function NewAttributeSettings() {
             name: profileConfig.name,
             displayName: profileConfig.displayName!,
             required: profileConfig.isRequired ? profileConfig.required : {},
-            validations,
             selector: profileConfig.selector,
             permissions: profileConfig.permissions!,
             annotations,

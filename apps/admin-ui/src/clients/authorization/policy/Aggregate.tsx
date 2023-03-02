@@ -1,11 +1,11 @@
-import { useTranslation } from "react-i18next";
-import { useParams } from "react-router-dom";
 import { FormGroup } from "@patternfly/react-core";
+import { useTranslation } from "react-i18next";
 
-import type { PolicyDetailsParams } from "../../routes/PolicyDetails";
 import { HelpItem } from "../../../components/help-enabler/HelpItem";
+import { useParams } from "../../../utils/useParams";
+import type { PolicyDetailsParams } from "../../routes/PolicyDetails";
+import { DecisionStrategySelect } from "../DecisionStrategySelect";
 import { ResourcesPolicySelect } from "../ResourcesPolicySelect";
-import { DecisionStrategySelect } from "../DecisionStragegySelect";
 
 export const Aggregate = () => {
   const { t } = useTranslation("clients");

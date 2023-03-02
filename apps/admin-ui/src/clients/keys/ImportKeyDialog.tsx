@@ -17,25 +17,18 @@ import {
 import { HelpItem } from "../../components/help-enabler/HelpItem";
 import { StoreSettings } from "./StoreSettings";
 import { FileUpload } from "../../components/json-file-upload/patternfly/FileUpload";
+import { useServerInfo } from "../../context/server-info/ServerInfoProvider";
 
 type ImportKeyDialogProps = {
   toggleDialog: () => void;
   save: (importFile: ImportFile) => void;
 };
 
-const baseFormats = ["JKS", "PKCS12"];
-
-const formats = baseFormats.concat([
-  "Certificate PEM",
-  "Public Key PEM",
-  "JSON Web Key Set",
-]);
-
 export type ImportFile = {
   keystoreFormat: string;
   keyAlias: string;
   storePassword: string;
-  file: { value: File; filename: string };
+  file: { value?: string; filename: string };
 };
 
 export const ImportKeyDialog = ({
@@ -48,11 +41,20 @@ export const ImportKeyDialog = ({
 
   const [openArchiveFormat, setOpenArchiveFormat] = useState(false);
 
-  const format = useWatch<string>({
+  const baseFormats = useServerInfo().cryptoInfo?.supportedKeystoreTypes ?? [];
+
+  const formats = baseFormats.concat([
+    "Certificate PEM",
+    "Public Key PEM",
+    "JSON Web Key Set",
+  ]);
+
+  const format = useWatch({
     control,
     name: "keystoreFormat",
-    defaultValue: "JKS",
+    defaultValue: formats[0],
   });
+
   return (
     <Modal
       variant={ModalVariant.medium}
@@ -103,23 +105,23 @@ export const ImportKeyDialog = ({
           <Controller
             name="keystoreFormat"
             control={control}
-            defaultValue="JKS"
-            render={({ onChange, value }) => (
+            defaultValue={formats[0]}
+            render={({ field }) => (
               <Select
                 toggleId="archiveFormat"
                 onToggle={setOpenArchiveFormat}
                 onSelect={(_, value) => {
-                  onChange(value as string);
+                  field.onChange(value as string);
                   setOpenArchiveFormat(false);
                 }}
-                selections={value}
+                selections={field.value}
                 variant={SelectVariant.single}
                 aria-label={t("archiveFormat")}
                 isOpen={openArchiveFormat}
               >
                 {formats.map((option) => (
                   <SelectOption
-                    selected={option === value}
+                    selected={option === field.value}
                     key={option}
                     value={option}
                   />
@@ -137,13 +139,15 @@ export const ImportKeyDialog = ({
           <Controller
             name="file"
             control={control}
-            defaultValue=""
-            render={({ onChange, value }) => (
+            defaultValue={{ filename: "" }}
+            render={({ field }) => (
               <FileUpload
                 id="importFile"
-                value={value.value}
-                filename={value.filename}
-                onChange={(value, filename) => onChange({ value, filename })}
+                value={field.value.value}
+                filename={field.value.filename}
+                onChange={(value, filename) =>
+                  field.onChange({ value, filename })
+                }
               />
             )}
           />

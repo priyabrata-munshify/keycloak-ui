@@ -22,10 +22,12 @@ import { ListEmptyState } from "../list-empty-state/ListEmptyState";
 import { PaginatingTableToolbar } from "../table-toolbar/PaginatingTableToolbar";
 import { GroupPath } from "./GroupPath";
 
+import "./group-picker-dialog.css";
+
 export type GroupPickerDialogProps = {
   id?: string;
   type: "selectOne" | "selectMany";
-  filterGroups?: string[];
+  filterGroups?: GroupRepresentation[];
   text: { title: string; ok: string };
   canBrowse?: boolean;
   onConfirm: (groups: GroupRepresentation[] | undefined) => void;
@@ -103,14 +105,13 @@ export const GroupPickerDialog = ({
 
   const isRowDisabled = (row?: GroupRepresentation) => {
     return [
-      ...joinedGroups.map((item) => item.name),
-      ...(filterGroups || []),
-    ].some((group) => group === row?.name);
+      ...joinedGroups.map((item) => item.id),
+      ...(filterGroups || []).map((group) => group.id),
+    ].some((group) => group === row?.id);
   };
 
-  const hasSubgroups = (group: GroupRepresentation) => {
-    return group.subGroups!.length !== 0;
-  };
+  const hasSubgroups = (group: GroupRepresentation) =>
+    group.subGroups?.length !== 0;
 
   const findSubGroup = (
     group: GroupRepresentation,
@@ -130,9 +131,9 @@ export const GroupPickerDialog = ({
 
   return (
     <Modal
-      variant={ModalVariant.small}
+      variant={filter ? ModalVariant.medium : ModalVariant.small}
       title={t(text.title, {
-        group1: filterGroups?.[0],
+        group1: filterGroups?.[0]?.name,
         group2: navigation.length ? currentGroup().name : t("root"),
       })}
       isOpen
@@ -266,7 +267,10 @@ export const GroupPickerDialog = ({
 
                 <DataListItemCells
                   dataListCells={[
-                    <DataListCell key={`name-${group.id}`}>
+                    <DataListCell
+                      key={`name-${group.id}`}
+                      className="keycloak-groups-group-path"
+                    >
                       {filter === "" ? (
                         <span id={`select-${group.name}`}>{group.name}</span>
                       ) : (

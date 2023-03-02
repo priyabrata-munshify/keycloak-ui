@@ -15,8 +15,7 @@ import { FormAccess } from "../../components/form-access/FormAccess";
 import { ViewHeader } from "../../components/view-header/ViewHeader";
 import { HelpItem } from "../../components/help-enabler/HelpItem";
 import { TimeSelector } from "../../components/time-selector/TimeSelector";
-import { Link } from "react-router-dom-v5-compat";
-import { useNavigate } from "react-router-dom-v5-compat";
+import { Link, useNavigate } from "react-router-dom";
 import { useRealm } from "../../context/realm-context/RealmContext";
 import { useAdminClient } from "../../context/auth/AdminClient";
 import { useAlerts } from "../../components/alert/Alerts";
@@ -89,11 +88,11 @@ export default function CreateInitialAccessToken() {
               defaultValue={86400}
               control={control}
               rules={{ min: 1 }}
-              render={({ onChange, value }) => (
+              render={({ field }) => (
                 <TimeSelector
                   data-testid="expiration"
-                  value={value}
-                  onChange={onChange}
+                  value={field.value}
+                  onChange={field.onChange}
                   min={1}
                   validated={errors.expiration ? "error" : "default"}
                 />
@@ -114,20 +113,20 @@ export default function CreateInitialAccessToken() {
               name="count"
               defaultValue={1}
               control={control}
-              render={({ onChange, value }) => (
+              render={({ field }) => (
                 <NumberInput
                   data-testid="count"
                   inputName="count"
                   inputAriaLabel={t("count")}
                   min={1}
-                  value={value}
-                  onPlus={() => onChange(value + 1)}
-                  onMinus={() => onChange(value - 1)}
+                  value={field.value}
+                  onPlus={() => field.onChange(field.value + 1)}
+                  onMinus={() => field.onChange(field.value - 1)}
                   onChange={(event) => {
                     const value = Number(
                       (event.target as HTMLInputElement).value
                     );
-                    onChange(value < 1 ? 1 : value);
+                    field.onChange(value < 1 ? 1 : value);
                   }}
                 />
               )}

@@ -1,21 +1,29 @@
 import LoginPage from "../support/pages/LoginPage";
-import Masthead from "../support/pages/admin_console/Masthead";
+import Masthead from "../support/pages/admin-ui/Masthead";
 import ListingPage, {
   Filter,
   FilterAssignedType,
   FilterProtocol,
-} from "../support/pages/admin_console/ListingPage";
-import SidebarPage from "../support/pages/admin_console/SidebarPage";
-import CreateClientScopePage from "../support/pages/admin_console/manage/client_scopes/CreateClientScopePage";
+} from "../support/pages/admin-ui/ListingPage";
+import SidebarPage from "../support/pages/admin-ui/SidebarPage";
+import CreateClientScopePage from "../support/pages/admin-ui/manage/client_scopes/CreateClientScopePage";
 import { keycloakBefore } from "../support/util/keycloak_hooks";
-import RoleMappingTab from "../support/pages/admin_console/manage/RoleMappingTab";
+import RoleMappingTab from "../support/pages/admin-ui/manage/RoleMappingTab";
 import ModalUtils from "../support/util/ModalUtils";
 import adminClient from "../support/util/AdminClient";
+import ClientScopeDetailsPage from "../support/pages/admin-ui/manage/client_scopes/client_scope_details/ClientScopeDetailsPage";
+import CommonPage from "../support/pages/CommonPage";
+import MappersTab from "../support/pages/admin-ui/manage/client_scopes/client_scope_details/tabs/MappersTab";
+import MapperDetailsPage, {
+  ClaimJsonType,
+} from "../support/pages/admin-ui/manage/client_scopes/client_scope_details/tabs/mappers/MapperDetailsPage";
 
 let itemId = "client_scope_crud";
 const loginPage = new LoginPage();
 const masthead = new Masthead();
 const sidebarPage = new SidebarPage();
+
+const commonPage = new CommonPage();
 const listingPage = new ListingPage();
 const createClientScopePage = new CreateClientScopePage();
 const modalUtils = new ModalUtils();
@@ -55,12 +63,9 @@ describe("Client Scopes test", () => {
   });
 
   describe("Client Scope filter list items", () => {
-    before(() => {
-      keycloakBefore();
-      loginPage.logIn();
-    });
-
     beforeEach(() => {
+      loginPage.logIn();
+      keycloakBefore();
       sidebarPage.goToClientScopes();
     });
 
@@ -99,17 +104,17 @@ describe("Client Scopes test", () => {
         .itemExist(FilterAssignedType.None, false);
     });
 
-    //TODO https://github.com/keycloak/keycloak-admin-ui/issues/1959
     it("should filter items by Protocol All", () => {
       listingPage
         .selectFilter(Filter.Protocol)
-        .selectSecondaryFilterProtocol(FilterProtocol.All)
+        .selectSecondaryFilterProtocol(FilterProtocol.All);
+      sidebarPage.waitForPageLoad();
+      listingPage
         .showNextPageTableItems()
         .itemExist(FilterProtocol.SAML, true)
         .itemExist(openIDConnectItemText, true); //using FilterProtocol.OpenID will fail, text does not match.
     });
 
-    //TODO https://github.com/keycloak/keycloak-admin-ui/issues/1959
     it("should filter items by Protocol SAML", () => {
       listingPage
         .selectFilter(Filter.Protocol)
@@ -118,7 +123,6 @@ describe("Client Scopes test", () => {
         .itemExist(openIDConnectItemText, false); //using FilterProtocol.OpenID will fail, text does not match.
     });
 
-    //TODO https://github.com/keycloak/keycloak-admin-ui/issues/1959
     it("should filter items by Protocol OpenID", () => {
       listingPage
         .selectFilter(Filter.Protocol)
@@ -135,12 +139,10 @@ describe("Client Scopes test", () => {
 
   describe("Client Scope modify list items", () => {
     const itemName = clientScopeName + 0;
-    before(() => {
-      keycloakBefore();
-      loginPage.logIn();
-    });
 
     beforeEach(() => {
+      loginPage.logIn();
+      keycloakBefore();
       sidebarPage.goToClientScopes();
     });
 
@@ -169,7 +171,6 @@ describe("Client Scopes test", () => {
         listingPage
           .searchItem(clientScopeName, false)
           .clickRowSelectItem(itemName, $assignedType);
-        // sidebarPage.waitForPageLoad(); //not working
         cy.wait(2000);
         listingPage.searchItem(itemName, false).itemExist($assignedType);
       });
@@ -199,16 +200,12 @@ describe("Client Scopes test", () => {
   });
 
   describe("Client Scope delete list items ", () => {
-    before(() => {
-      keycloakBefore();
-      loginPage.logIn();
-    });
-
     beforeEach(() => {
+      loginPage.logIn();
+      keycloakBefore();
       sidebarPage.goToClientScopes();
     });
 
-    //TODO: Partially blocked by https://github.com/keycloak/keycloak-admin-ui/issues/1854
     it("should delete item from item bar", () => {
       listingPage
         .checkInSearchBarChangeTypeToButtonIsDisabled()
@@ -220,10 +217,9 @@ describe("Client Scopes test", () => {
       masthead.checkNotificationMessage(
         notificationMessageDeletionConfirmation
       );
-      //listingPage.checkInSearchBarChangeTypeToButtonIsDisabled();
+      listingPage.checkInSearchBarChangeTypeToButtonIsDisabled();
     });
 
-    //TODO: Partially blocked by https://github.com/keycloak/keycloak-admin-ui/issues/1854
     it("should delete selected item from search bar", () => {
       listingPage
         .checkInSearchBarChangeTypeToButtonIsDisabled()
@@ -236,10 +232,9 @@ describe("Client Scopes test", () => {
       masthead.checkNotificationMessage(
         notificationMessageDeletionConfirmation
       );
-      //listingPage.checkInSearchBarChangeTypeToButtonIsDisabled();
+      listingPage.checkInSearchBarChangeTypeToButtonIsDisabled();
     });
 
-    //TODO: Partially blocked by https://github.com/keycloak/keycloak-admin-ui/issues/1854
     it("should delete multiple selected items from search bar", () => {
       listingPage
         .checkInSearchBarChangeTypeToButtonIsDisabled()
@@ -254,17 +249,14 @@ describe("Client Scopes test", () => {
       masthead.checkNotificationMessage(
         notificationMessageDeletionConfirmation
       );
-      //listingPage.checkInSearchBarChangeTypeToButtonIsDisabled();
+      listingPage.checkInSearchBarChangeTypeToButtonIsDisabled();
     });
   });
 
   describe("Client Scope creation", () => {
-    before(() => {
-      keycloakBefore();
-      loginPage.logIn();
-    });
-
     beforeEach(() => {
+      loginPage.logIn();
+      keycloakBefore();
       sidebarPage.goToClientScopes();
     });
 
@@ -272,14 +264,8 @@ describe("Client Scopes test", () => {
       sidebarPage.waitForPageLoad();
       listingPage.goToCreateItem();
 
-      createClientScopePage.save().checkClientNameRequiredMessage();
+      createClientScopePage.fillClientScopeData("address").save();
 
-      createClientScopePage
-        .fillClientScopeData("address")
-        .save()
-        .checkClientNameRequiredMessage(false);
-
-      // The error should inform about duplicated name/id
       masthead.checkNotificationMessage(
         "Could not create client scope: 'Client Scope address already exists'"
       );
@@ -305,7 +291,7 @@ describe("Client Scopes test", () => {
     });
 
     it("Client scope CRUD test", () => {
-      itemId += "_" + (Math.random() + 1).toString(36).substring(7);
+      itemId += "_" + crypto.randomUUID();
 
       // Create
       listingPage.itemExist(itemId, false).goToCreateItem();
@@ -333,18 +319,89 @@ describe("Client Scopes test", () => {
     });
   });
 
-  describe("Scope test", () => {
+  describe("Scope tab test", () => {
     const scopeTab = new RoleMappingTab("client-scope");
     const scopeName = "address";
-    it.skip("Assign role", () => {
+
+    beforeEach(() => {
+      loginPage.logIn();
+      keycloakBefore();
+      sidebarPage.goToClientScopes();
+    });
+
+    it("Assign and unassign role", () => {
       const role = "admin";
       listingPage.searchItem(scopeName, false).goToItemDetails(scopeName);
       scopeTab.goToScopeTab().assignRole().selectRow(role).assign();
       masthead.checkNotificationMessage("Role mapping updated");
       scopeTab.checkRoles([role]);
       scopeTab.hideInheritedRoles().selectRow(role).unAssign();
-      modalUtils.checkModalTitle("Remove mapping?").confirmModal();
+      modalUtils.checkModalTitle("Remove role?").confirmModal();
       scopeTab.checkRoles([]);
+    });
+  });
+
+  describe("Mappers tab test", () => {
+    const clientScopeDetailsPage = new ClientScopeDetailsPage();
+    const mappersTab = new MappersTab();
+    const mapperDetailsTab = new MapperDetailsPage();
+    const scopeName = "address";
+
+    beforeEach(() => {
+      loginPage.logIn();
+      keycloakBefore();
+      sidebarPage.goToClientScopes();
+    });
+
+    it("CRUD mappers", () => {
+      const predefinedMapperName = "Predefined Mapper test";
+      const predefinedMapper = "Allowed Web Origins";
+      const mappers1 = ["birthdate"];
+      const mappers2 = ["email verified", "email", "family name"];
+
+      listingPage.searchItem(scopeName, false).goToItemDetails(scopeName);
+      clientScopeDetailsPage
+        .goToMappersTab()
+        .addPredefinedMappers(mappers1)
+        .addPredefinedMappers(mappers2);
+
+      listingPage.searchItem(mappers1[0], false).goToItemDetails(mappers1[0]);
+
+      mapperDetailsTab
+        .fillUserAttribute(mappers1[0] + "1")
+        .fillTokenClaimName(mappers1[0] + "2")
+        .changeClaimJsonType(ClaimJsonType.Long);
+
+      commonPage.formUtils().save();
+      commonPage
+        .masthead()
+        .checkNotificationMessage("Mapping successfully updated");
+
+      sidebarPage.goToClientScopes();
+      listingPage.searchItem(scopeName, false).goToItemDetails(scopeName);
+
+      clientScopeDetailsPage.goToMappersTab();
+
+      listingPage.searchItem(mappers1[0], false).goToItemDetails(mappers1[0]);
+
+      mapperDetailsTab
+        .checkUserAttribute(mappers1[0] + "1")
+        .checkTokenClaimName(mappers1[0] + "2")
+        .checkClaimJsonType(ClaimJsonType.Long);
+
+      commonPage.formUtils().cancel();
+
+      mappersTab
+        .removeMappers(mappers1.concat(mappers2))
+        .addMappersByConfiguration(predefinedMapper, predefinedMapperName);
+
+      sidebarPage.goToClientScopes();
+      listingPage.searchItem(scopeName, false).goToItemDetails(scopeName);
+      clientScopeDetailsPage.goToMappersTab();
+
+      commonPage.tableUtils().checkRowItemExists(predefinedMapperName, true);
+
+      mappersTab.removeMappers([predefinedMapperName]);
     });
   });
 });

@@ -10,18 +10,18 @@ import {
 import { useEffect, useMemo } from "react";
 import { FormProvider, SubmitHandler, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { useParams } from "react-router-dom";
-import { Link, useNavigate } from "react-router-dom-v5-compat";
-import { KeyValueInput } from "../../components/key-value-form/KeyValueInput";
+import { Link, useNavigate, useParams } from "react-router-dom";
+
 import { FormAccess } from "../../components/form-access/FormAccess";
 import { HelpItem } from "../../components/help-enabler/HelpItem";
+import type { KeyValueType } from "../../components/key-value-form/key-value-convert";
+import { KeyValueInput } from "../../components/key-value-form/KeyValueInput";
 import { KeycloakTextInput } from "../../components/keycloak-text-input/KeycloakTextInput";
 import { ViewHeader } from "../../components/view-header/ViewHeader";
 import { useRealm } from "../../context/realm-context/RealmContext";
 import type { EditAttributesGroupParams } from "../routes/EditAttributesGroup";
 import { toUserProfile } from "../routes/UserProfile";
 import { useUserProfile } from "./UserProfileContext";
-import type { KeyValueType } from "../../components/key-value-form/key-value-convert";
 
 import "../realm-settings-section.css";
 
@@ -59,8 +59,8 @@ export default function AttributesGroupForm() {
   const { realm } = useRealm();
   const { config, save } = useUserProfile();
   const navigate = useNavigate();
-  const params = useParams<Partial<EditAttributesGroupParams>>();
-  const form = useForm<FormFields>({ defaultValues, shouldUnregister: false });
+  const params = useParams<EditAttributesGroupParams>();
+  const form = useForm<FormFields>({ defaultValues });
 
   const matchingGroup = useMemo(
     () => config?.groups?.find(({ name }) => name === params.name),
@@ -109,76 +109,70 @@ export default function AttributesGroupForm() {
       <ViewHeader
         titleKey={
           matchingGroup
-            ? "attributes-group:editGroupText"
-            : "attributes-group:createGroupText"
+            ? "realm-settings:editGroupText"
+            : "realm-settings:createGroupText"
         }
         divider
       />
       <PageSection variant="light" onSubmit={form.handleSubmit(onSubmit)}>
         <FormAccess isHorizontal role="manage-realm">
           <FormGroup
-            label={t("attributes-group:nameField")}
+            label={t("realm-settings:nameField")}
             fieldId="kc-name"
             isRequired
             helperTextInvalid={t("common:required")}
-            validated={form.errors.name ? "error" : "default"}
+            validated={form.formState.errors.name ? "error" : "default"}
             labelIcon={
               <HelpItem
-                helpText="attributes-group:nameHint"
-                fieldLabelId="attributes-group:nameField"
+                helpText="realm-settings:nameHint"
+                fieldLabelId="realm-settings:nameField"
               />
             }
           >
             <KeycloakTextInput
-              ref={form.register({ required: true })}
-              type="text"
               id="kc-name"
-              name="name"
               isReadOnly={!!matchingGroup}
+              {...form.register("name", { required: true })}
             />
             {!!matchingGroup && (
-              <input type="hidden" ref={form.register()} name="name" />
+              <input type="hidden" {...form.register("name")} />
             )}
           </FormGroup>
           <FormGroup
-            label={t("attributes-group:displayHeaderField")}
+            label={t("realm-settings:displayHeaderField")}
             fieldId="kc-display-header"
             labelIcon={
               <HelpItem
-                helpText="attributes-group:displayHeaderHint"
-                fieldLabelId="attributes-group:displayHeaderField"
+                helpText="realm-settings:displayHeaderHint"
+                fieldLabelId="realm-settings:displayHeaderField"
               />
             }
           >
             <KeycloakTextInput
-              ref={form.register()}
-              type="text"
               id="kc-display-header"
-              name="displayHeader"
+              {...form.register("displayHeader")}
             />
           </FormGroup>
           <FormGroup
-            label={t("attributes-group:displayDescriptionField")}
+            label={t("realm-settings:displayDescriptionField")}
             fieldId="kc-display-description"
             labelIcon={
               <HelpItem
-                helpText="attributes-group:displayDescriptionHint"
-                fieldLabelId="attributes-group:displayDescriptionField"
+                helpText="realm-settings:displayDescriptionHint"
+                fieldLabelId="realm-settings:displayDescriptionField"
               />
             }
           >
             <KeycloakTextInput
-              ref={form.register()}
-              type="text"
               id="kc-display-description"
-              name="displayDescription"
+              {...form.register("displayDescription")}
             />
           </FormGroup>
           <TextContent>
-            <Text component="h2">{t("attributes-group:annotationsText")}</Text>
+            <Text component="h2">{t("realm-settings:annotationsText")}</Text>
           </TextContent>
           <FormGroup
-            label={t("attributes-group:annotationsText")}
+            label={t("realm-settings:annotationsText")}
             fieldId="kc-annotations"
           >
             <FormProvider {...form}>

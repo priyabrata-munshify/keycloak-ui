@@ -1,5 +1,5 @@
 import { useState } from "react";
-import FileSaver from "file-saver";
+import { saveAs } from "file-saver";
 import { useTranslation } from "react-i18next";
 import { FormProvider, useForm } from "react-hook-form";
 import {
@@ -75,10 +75,10 @@ export const SamlKeysDialog = ({
   const { t } = useTranslation("clients");
   const [type, setType] = useState(false);
   const [keys, setKeys] = useState<CertificateRepresentation>();
-  const form = useForm<SamlKeysDialogForm>();
+  const form = useForm<SamlKeysDialogForm>({ mode: "onChange" });
   const {
     handleSubmit,
-    formState: { isDirty },
+    formState: { isValid },
   } = form;
 
   const { adminClient } = useAdminClient();
@@ -101,7 +101,7 @@ export const SamlKeysDialog = ({
         attr,
       });
       setKeys(key);
-      FileSaver.saveAs(
+      saveAs(
         new Blob([key.privateKey!], {
           type: "application/octet-stream",
         }),
@@ -132,7 +132,7 @@ export const SamlKeysDialog = ({
           key="confirm"
           data-testid="confirm"
           variant="primary"
-          isDisabled={!isDirty && !keys}
+          isDisabled={!isValid && !keys}
           onClick={() => {
             if (type) {
               handleSubmit(submit)();
@@ -153,68 +153,64 @@ export const SamlKeysDialog = ({
         </Button>,
       ]}
     >
-      <Form isHorizontal>
-        <FormGroup
-          label={t("selectMethod")}
-          fieldId="selectMethod"
-          hasNoPaddingTop
-        >
-          <Flex>
-            <FlexItem>
-              <Radio
-                isChecked={!type}
-                name="selectMethodType"
-                onChange={() => setType(false)}
-                label={t("selectMethodType.generate")}
-                id="selectMethodType-generate"
-              />
-            </FlexItem>
-            <FlexItem>
-              <Radio
-                isChecked={type}
-                name="selectMethodType"
-                onChange={() => setType(true)}
-                label={t("selectMethodType.import")}
-                id="selectMethodType-import"
-              />
-            </FlexItem>
-          </Flex>
-        </FormGroup>
-      </Form>
-      {!type && (
-        <Form>
+      <FormProvider {...form}>
+        <Form isHorizontal>
           <FormGroup
-            label={t("certificate")}
-            fieldId="certificate"
-            labelIcon={
-              <HelpItem
-                helpText="clients-help:certificate"
-                fieldLabelId="clients:certificate"
-              />
-            }
+            label={t("selectMethod")}
+            fieldId="selectMethod"
+            hasNoPaddingTop
           >
-            <Split hasGutter>
-              <SplitItem isFilled>
-                <Certificate plain keyInfo={keys} />
-              </SplitItem>
-              <SplitItem>
-                <Button
-                  variant="secondary"
-                  data-testid="generate"
-                  onClick={generate}
-                >
-                  {t("generate")}
-                </Button>
-              </SplitItem>
-            </Split>
+            <Flex>
+              <FlexItem>
+                <Radio
+                  isChecked={!type}
+                  name="selectMethodType"
+                  onChange={() => setType(false)}
+                  label={t("selectMethodType.generate")}
+                  id="selectMethodType-generate"
+                />
+              </FlexItem>
+              <FlexItem>
+                <Radio
+                  isChecked={type}
+                  name="selectMethodType"
+                  onChange={() => setType(true)}
+                  label={t("selectMethodType.import")}
+                  id="selectMethodType-import"
+                />
+              </FlexItem>
+            </Flex>
           </FormGroup>
+          {!type && (
+            <FormGroup
+              label={t("certificate")}
+              fieldId="certificate"
+              labelIcon={
+                <HelpItem
+                  helpText="clients-help:certificate"
+                  fieldLabelId="clients:certificate"
+                />
+              }
+            >
+              <Split hasGutter>
+                <SplitItem isFilled>
+                  <Certificate plain keyInfo={keys} />
+                </SplitItem>
+                <SplitItem>
+                  <Button
+                    variant="secondary"
+                    data-testid="generate"
+                    onClick={generate}
+                  >
+                    {t("generate")}
+                  </Button>
+                </SplitItem>
+              </Split>
+            </FormGroup>
+          )}
         </Form>
-      )}
-      {type && (
-        <FormProvider {...form}>
-          <KeyForm useFile />
-        </FormProvider>
-      )}
+        {type && <KeyForm useFile />}
+      </FormProvider>
     </Modal>
   );
 };

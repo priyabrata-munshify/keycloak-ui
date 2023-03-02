@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { Path } from "react-router-dom-v5-compat";
-import { Link } from "react-router-dom-v5-compat";
+import type { Path } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Dropdown, DropdownItem, DropdownToggle } from "@patternfly/react-core";
 import { CaretDownIcon } from "@patternfly/react-icons";
 
@@ -29,6 +29,14 @@ type Row = ProtocolMapperRepresentation & {
   type: string;
   priority: number;
 };
+
+type MapperLinkProps = Row & {
+  detailLink: (id: string) => Partial<Path>;
+};
+
+const MapperLink = ({ id, name, detailLink }: MapperLinkProps) => (
+  <Link to={detailLink(id!)}>{name}</Link>
+);
 
 export const MapperList = ({
   model,
@@ -80,10 +88,6 @@ export const MapperList = ({
 
     return list.sort((a, b) => a.priority - b.priority);
   };
-
-  const MapperLink = ({ id, name }: Row) => (
-    <Link to={detailLink(id!)}>{name}</Link>
-  );
 
   return (
     <>
@@ -139,7 +143,9 @@ export const MapperList = ({
         columns={[
           {
             name: "name",
-            cellRenderer: MapperLink,
+            cellRenderer: (row) => (
+              <MapperLink {...row} detailLink={detailLink} />
+            ),
           },
           { name: "category" },
           {

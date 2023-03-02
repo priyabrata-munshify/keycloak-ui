@@ -1,38 +1,37 @@
 import { keycloakBefore } from "../support/util/keycloak_hooks";
 import LoginPage from "../support/pages/LoginPage";
-import SidebarPage from "../support/pages/admin_console/SidebarPage";
-import Masthead from "../support/pages/admin_console/Masthead";
-import ListingPage from "../support/pages/admin_console/ListingPage";
-import DuplicateFlowModal from "../support/pages/admin_console/manage/authentication/DuplicateFlowModal";
-import FlowDetails from "../support/pages/admin_console/manage/authentication/FlowDetail";
-import RequiredActions from "../support/pages/admin_console/manage/authentication/RequiredActions";
+import SidebarPage from "../support/pages/admin-ui/SidebarPage";
+import Masthead from "../support/pages/admin-ui/Masthead";
+import ListingPage from "../support/pages/admin-ui/ListingPage";
+import DuplicateFlowModal from "../support/pages/admin-ui/manage/authentication/DuplicateFlowModal";
+import FlowDetails from "../support/pages/admin-ui/manage/authentication/FlowDetail";
+import RequiredActions from "../support/pages/admin-ui/manage/authentication/RequiredActions";
 import adminClient from "../support/util/AdminClient";
-import PasswordPolicies from "../support/pages/admin_console/manage/authentication/PasswordPolicies";
+import PasswordPolicies from "../support/pages/admin-ui/manage/authentication/PasswordPolicies";
 import ModalUtils from "../support/util/ModalUtils";
 import CommonPage from "../support/pages/CommonPage";
-import BindFlowModal from "../support/pages/admin_console/manage/authentication/BindFlowModal";
+import BindFlowModal from "../support/pages/admin-ui/manage/authentication/BindFlowModal";
 
 const loginPage = new LoginPage();
 const masthead = new Masthead();
 const sidebarPage = new SidebarPage();
 const commonPage = new CommonPage();
 const listingPage = new ListingPage();
+const realmName = "test" + crypto.randomUUID();
 
 describe("Authentication test", () => {
   const detailPage = new FlowDetails();
   const duplicateFlowModal = new DuplicateFlowModal();
   const modalUtil = new ModalUtils();
 
-  before(() => {
-    cy.wrap(adminClient.createRealm("test"));
-    keycloakBefore();
-    loginPage.logIn();
-    sidebarPage.goToRealm("test");
-  });
+  before(() => adminClient.createRealm(realmName));
 
-  after(() => adminClient.deleteRealm("test"));
+  after(() => adminClient.deleteRealm(realmName));
 
   beforeEach(() => {
+    loginPage.logIn();
+    keycloakBefore();
+    sidebarPage.goToRealm(realmName);
     sidebarPage.goToAuthentication();
   });
 
@@ -190,19 +189,17 @@ describe("Authentication test", () => {
 describe("Required actions", () => {
   const requiredActionsPage = new RequiredActions();
 
-  before(() => {
-    cy.wrap(adminClient.createRealm("test"));
-    keycloakBefore();
-    loginPage.logIn();
-    sidebarPage.goToRealm("test");
-  });
+  before(() => adminClient.createRealm(realmName));
 
   beforeEach(() => {
+    loginPage.logIn();
+    keycloakBefore();
+    sidebarPage.goToRealm(realmName);
     sidebarPage.goToAuthentication();
     requiredActionsPage.goToTab();
   });
 
-  after(() => adminClient.deleteRealm("test"));
+  after(() => adminClient.deleteRealm(realmName));
 
   it("should enable delete account", () => {
     const action = "Delete Account";
@@ -236,8 +233,8 @@ describe("Password policies tab", () => {
   const passwordPoliciesPage = new PasswordPolicies();
 
   beforeEach(() => {
-    keycloakBefore();
     loginPage.logIn();
+    keycloakBefore();
     sidebarPage.goToAuthentication();
     passwordPoliciesPage.goToTab();
   });

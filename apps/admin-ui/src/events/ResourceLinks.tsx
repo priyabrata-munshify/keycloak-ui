@@ -1,5 +1,5 @@
 import { ReactElement } from "react";
-import { Link } from "react-router-dom-v5-compat";
+import { Link } from "react-router-dom";
 import { Tooltip } from "@patternfly/react-core";
 
 import type AdminEventRepresentation from "@keycloak/keycloak-admin-client/lib/defs/adminEventRepresentation";
@@ -92,7 +92,7 @@ const createLink = (realm: string, event: AdminEventRepresentation) => {
   }
 
   if (event.resourcePath?.startsWith("roles-by-id")) {
-    return toRealmRole({ realm, id });
+    return toRealmRole({ realm, id, tab: "details" });
   }
 
   return "";

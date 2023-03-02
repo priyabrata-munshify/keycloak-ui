@@ -1,66 +1,73 @@
-import ListingPage from "../support/pages/admin_console/ListingPage";
 import LoginPage from "../support/pages/LoginPage";
-import SidebarPage from "../support/pages/admin_console/SidebarPage";
-import Masthead from "../support/pages/admin_console/Masthead";
+import SidebarPage from "../support/pages/admin-ui/SidebarPage";
+import Masthead from "../support/pages/admin-ui/Masthead";
 import { keycloakBefore } from "../support/util/keycloak_hooks";
 
 const loginPage = new LoginPage();
 const masthead = new Masthead();
-const listingPage = new ListingPage();
 const sidebarPage = new SidebarPage();
+const helpLabel = ".pf-c-form__group-label-help";
 
-const logOutTest = () => {
-  sidebarPage.waitForPageLoad();
-  masthead.signOut();
-  sidebarPage.waitForPageLoad();
-  loginPage.isLogInPage();
-};
-
-const goToAcctMgtTest = () => {
-  sidebarPage.waitForPageLoad();
-  masthead.accountManagement();
-  cy.get("h1").contains("Welcome to Keycloak account management");
-  cy.get("#landingReferrerLink").click({ force: true });
-  masthead.checkIsAdminConsole();
-};
-
-describe("Masthead tests in desktop mode", () => {
+describe("Masthead tests", () => {
   beforeEach(() => {
-    keycloakBefore();
     loginPage.logIn();
-  });
-
-  it("Test dropdown in desktop mode", () => {
-    goToAcctMgtTest();
-
-    sidebarPage.goToClientScopes();
-    listingPage.goToItemDetails("address");
-
-    cy.get("#view-header-subkey").should("exist");
-    cy.findByTestId("help-label-name").should("exist");
-
-    masthead.toggleGlobalHelp();
-
-    cy.get("#view-header-subkey").should("not.exist");
-    cy.findByTestId("help-label-name").should("not.exist");
-
-    logOutTest();
-  });
-});
-
-describe("Masthead tests with kebab menu", () => {
-  beforeEach(() => {
     keycloakBefore();
-    loginPage.logIn();
-    masthead.setMobileMode(true);
   });
 
-  it("Test dropdown in mobile mode", () => {
-    masthead.checkKebabShown();
-    goToAcctMgtTest();
-    logOutTest();
+  describe("Desktop view", () => {
+    it("Go to account console and back to admin console", () => {
+      sidebarPage.waitForPageLoad();
+      masthead.accountManagement();
+      cy.get("h1").contains("Welcome to Keycloak account management");
+      masthead.goToAdminConsole();
+      masthead.checkIsAdminUI();
+    });
+
+    it("Sign out reachs to log in screen", () => {
+      sidebarPage.waitForPageLoad();
+      masthead.signOut();
+      sidebarPage.waitForPageLoad();
+      loginPage.isLogInPage();
+    });
+
+    it("Go to realm info", () => {
+      sidebarPage.goToClients();
+      masthead.toggleUsernameDropdown().clickRealmInfo();
+      cy.get(".pf-c-card__title").should("contain.text", "Server info");
+    });
+
+    it("Should go to documentation page", () => {
+      masthead.clickGlobalHelp();
+      masthead.clickDocumentationLink();
+      cy.get("#header").should("contain.text", "Server Administration Guide");
+    });
+
+    it("Enable/disable help mode in desktop mode", () => {
+      masthead.assertIsDesktopView();
+      cy.get(helpLabel).should("exist");
+      masthead.toggleGlobalHelp();
+      masthead.clickGlobalHelp();
+      cy.get(helpLabel).should("not.exist");
+      masthead.toggleGlobalHelp();
+      cy.get(helpLabel).should("exist");
+    });
   });
 
-  // TODO: Add test for help when using kebab menu.
-  //       Feature not yet implemented for kebab.
+  describe("Mobile view", () => {
+    it("Mobile menu is shown when in mobile view", () => {
+      cy.viewport("samsung-s10");
+      masthead.assertIsMobileView();
+    });
+
+    it("Enable/disable help mode in mobile view", () => {
+      cy.viewport("samsung-s10");
+      masthead
+        .assertIsMobileView()
+        .toggleUsernameDropdown()
+        .toggleMobileViewHelp();
+      cy.get(helpLabel).should("not.exist");
+      masthead.toggleMobileViewHelp();
+      cy.get(helpLabel).should("exist");
+    });
+  });
 });

@@ -2,6 +2,7 @@ import {
   Button,
   ContextSelector,
   ContextSelectorItem,
+  ContextSelectorItemProps,
   Divider,
   Dropdown,
   DropdownItem,
@@ -12,18 +13,70 @@ import {
   SplitItem,
 } from "@patternfly/react-core";
 import { CheckIcon } from "@patternfly/react-icons";
-import { Fragment, ReactElement, useMemo, useState } from "react";
+import { Fragment, useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom-v5-compat";
+import { Link, To, useHref } from "react-router-dom";
 
 import { useRealm } from "../../context/realm-context/RealmContext";
 import { useRealms } from "../../context/RealmsContext";
+import { useRecentRealms } from "../../context/RecentRealms";
 import { useWhoAmI } from "../../context/whoami/WhoAmI";
 import { toDashboard } from "../../dashboard/routes/Dashboard";
 import { toAddRealm } from "../../realm/routes/AddRealm";
-import { RecentUsed } from "./recent-used";
 
 import "./realm-selector.css";
+
+type AddRealmProps = {
+  onClick: () => void;
+};
+
+const AddRealm = ({ onClick }: AddRealmProps) => {
+  const { realm } = useRealm();
+  const { t } = useTranslation("common");
+
+  return (
+    <Button
+      data-testid="add-realm"
+      component={(props) => <Link {...props} to={toAddRealm({ realm })} />}
+      onClick={onClick}
+      isBlock
+    >
+      {t("createRealm")}
+    </Button>
+  );
+};
+
+type RealmTextProps = {
+  value: string;
+};
+
+const RealmText = ({ value }: RealmTextProps) => {
+  const { realm } = useRealm();
+
+  return (
+    <Split className="keycloak__realm_selector__list-item-split">
+      <SplitItem isFilled>{value}</SplitItem>
+      <SplitItem>{value === realm && <CheckIcon />}</SplitItem>
+    </Split>
+  );
+};
+
+// We need to make all these props partial because of a bug in PatternFly.
+// See: https://github.com/patternfly/patternfly-react/pull/8670
+// TODO: Remove this partial when a fix has been released.
+type ContextSelectorItemLinkProps = Partial<
+  Omit<ContextSelectorItemProps, "href">
+> & {
+  to: To;
+};
+
+const ContextSelectorItemLink = ({
+  to,
+  ...props
+}: ContextSelectorItemLinkProps) => {
+  const href = useHref(to);
+  return <ContextSelectorItem {...props} href={href} />;
+};
 
 export const RealmSelector = () => {
   const { realm } = useRealm();
@@ -31,148 +84,116 @@ export const RealmSelector = () => {
   const { whoAmI } = useWhoAmI();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const navigate = useNavigate();
   const { t } = useTranslation("common");
-  const recentUsed = new RecentUsed();
-  const all = recentUsed.used
-    .filter((r) => r !== realm)
-    .map((name) => {
-      return { name, used: true };
-    })
-    .concat(
-      realms
-        .filter((r) => !recentUsed.used.includes(r.realm!) || r.realm === realm)
-        .map((r) => {
-          return { name: r.realm!, used: false };
+  const recentRealms = useRecentRealms();
+
+  const all = useMemo(
+    () =>
+      recentRealms
+        .filter((r) => r !== realm)
+        .map((name) => {
+          return { name, used: true };
         })
-    );
-
-  const filteredItems = useMemo(() => {
-    if (search === "") {
-      return undefined;
-    }
-
-    return all.filter((r) =>
-      r.name.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [search, all]);
-
-  const RealmText = ({ value }: { value: string }) => (
-    <Split className="keycloak__realm_selector__list-item-split">
-      <SplitItem isFilled>{value}</SplitItem>
-      <SplitItem>{value === realm && <CheckIcon />}</SplitItem>
-    </Split>
-  );
-
-  const AddRealm = () => (
-    <Button
-      data-testid="add-realm"
-      component="div"
-      isBlock
-      onClick={() => {
-        navigate(toAddRealm({ realm }));
-        setOpen(!open);
-      }}
-    >
-      {t("createRealm")}
-    </Button>
-  );
-
-  const selectRealm = (realm: string) => {
-    setOpen(!open);
-    navigate(toDashboard({ realm }));
-  };
-
-  const dropdownItems =
-    realms.length !== 0
-      ? realms.map((r) => (
-          <DropdownItem
-            key={`realm-dropdown-item-${r.realm}`}
-            onClick={() => {
-              selectRealm(r.realm!);
-            }}
-          >
-            <RealmText value={r.realm!} />
-          </DropdownItem>
-        ))
-      : [
-          <DropdownItem key="load">
-            Loading <Spinner size="sm" />
-          </DropdownItem>,
-        ];
-
-  const addRealmComponent = (
-    <Fragment key="Add Realm">
-      {whoAmI.canCreateRealm() && (
-        <>
-          <Divider key="divider" />
-          <DropdownItem key="add">
-            <AddRealm />
-          </DropdownItem>
-        </>
-      )}
-    </Fragment>
-  );
-
-  return (
-    <>
-      {realms.length > 5 && (
-        <ContextSelector
-          data-testid="realmSelector"
-          toggleText={realm}
-          isOpen={open}
-          screenReaderLabel={realm}
-          onToggle={() => setOpen(!open)}
-          onSelect={(_, r) => {
-            let element: ReactElement;
-            if (Array.isArray(r)) {
-              element = (r as ReactElement[])[0];
-            } else {
-              element = r as ReactElement;
-            }
-            const value = element.props.value;
-            if (value) {
-              selectRealm(value);
-            }
-          }}
-          searchInputValue={search}
-          onSearchInputChange={(value) => setSearch(value)}
-          className="keycloak__realm_selector__context_selector"
-          footer={
-            whoAmI.canCreateRealm() && (
-              <ContextSelectorItem key="add">
-                <AddRealm />
-              </ContextSelectorItem>
+        .concat(
+          realms
+            .filter(
+              (r) => !recentRealms.includes(r.realm!) || r.realm === realm
             )
-          }
+            .map((r) => {
+              return { name: r.realm!, used: false };
+            })
+        ),
+    [recentRealms, realm, realms]
+  );
+
+  const filteredItems = useMemo(
+    () =>
+      search.trim() === ""
+        ? all
+        : all.filter((r) =>
+            r.name.toLowerCase().includes(search.toLowerCase())
+          ),
+    [search, all]
+  );
+
+  return realms.length > 5 ? (
+    <ContextSelector
+      data-testid="realmSelector"
+      toggleText={realm}
+      isOpen={open}
+      screenReaderLabel={realm}
+      onToggle={() => setOpen(!open)}
+      searchInputValue={search}
+      onSearchInputChange={(value) => setSearch(value)}
+      className="keycloak__realm_selector__context_selector"
+      footer={
+        whoAmI.canCreateRealm() && (
+          <ContextSelectorItem key="add">
+            <AddRealm onClick={() => setOpen(false)} />
+          </ContextSelectorItem>
+        )
+      }
+    >
+      {filteredItems.map((item) => (
+        <ContextSelectorItemLink
+          key={item.name}
+          to={toDashboard({ realm: item.name })}
+          onClick={() => setOpen(false)}
         >
-          {(filteredItems || all).map((item) => (
-            <ContextSelectorItem key={item.name}>
-              <RealmText value={item.name} />{" "}
-              {item.used && <Label>{t("recent")}</Label>}
-            </ContextSelectorItem>
-          ))}
-        </ContextSelector>
-      )}
-      {realms.length <= 5 && (
-        <Dropdown
-          id="realm-select"
-          data-testid="realmSelector"
-          className="keycloak__realm_selector__dropdown"
-          isOpen={open}
-          toggle={
-            <DropdownToggle
-              data-testid="realmSelectorToggle"
-              onToggle={() => setOpen(!open)}
-              className="keycloak__realm_selector_dropdown__toggle"
-            >
-              {realm}
-            </DropdownToggle>
-          }
-          onFocus={refresh}
-          dropdownItems={[...dropdownItems, addRealmComponent]}
-        />
-      )}
-    </>
+          <RealmText value={item.name} />{" "}
+          {item.used && <Label>{t("recent")}</Label>}
+        </ContextSelectorItemLink>
+      ))}
+    </ContextSelector>
+  ) : (
+    <Dropdown
+      id="realm-select"
+      data-testid="realmSelector"
+      className="keycloak__realm_selector__dropdown"
+      isOpen={open}
+      toggle={
+        <DropdownToggle
+          data-testid="realmSelectorToggle"
+          onToggle={() => {
+            if (realms.length === 0) refresh();
+            setOpen(!open);
+          }}
+          className="keycloak__realm_selector_dropdown__toggle"
+        >
+          {realm}
+        </DropdownToggle>
+      }
+      dropdownItems={(realms.length !== 0
+        ? realms.map((r) => (
+            <DropdownItem
+              key={r.realm}
+              component={
+                <Link
+                  to={toDashboard({ realm: r.realm! })}
+                  onClick={() => setOpen(false)}
+                >
+                  <RealmText value={r.realm!} />
+                </Link>
+              }
+            />
+          ))
+        : [
+            <DropdownItem key="loader">
+              <Spinner size="sm" /> {t("loadingRealms")}
+            </DropdownItem>,
+          ]
+      ).concat([
+        <Fragment key="add-realm">
+          {whoAmI.canCreateRealm() && (
+            <>
+              <Divider key="divider" />
+              <DropdownItem key="add">
+                <AddRealm onClick={() => setOpen(false)} />
+              </DropdownItem>
+            </>
+          )}
+        </Fragment>,
+      ])}
+    />
   );
 };

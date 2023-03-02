@@ -15,8 +15,7 @@ import { FilterIcon } from "@patternfly/react-icons";
 
 import { KeycloakSpinner } from "../../components/keycloak-spinner/KeycloakSpinner";
 import { DraggableTable } from "../../authentication/components/DraggableTable";
-import { Link } from "react-router-dom-v5-compat";
-import { useNavigate } from "react-router-dom-v5-compat";
+import { Link, useNavigate } from "react-router-dom";
 import { toAddAttribute } from "../routes/AddAttribute";
 import { useRealm } from "../../context/realm-context/RealmContext";
 import { useUserProfile } from "./UserProfileContext";
@@ -54,7 +53,7 @@ export const AttributesTab = () => {
     config?.attributes!.splice(newIndex, 0, movedAttribute);
 
     save(
-      { attributes: config?.attributes! },
+      { attributes: config?.attributes!, groups: config?.groups },
       {
         successMessageKey: "realm-settings:updatedUserProfileSuccess",
         errorMessageKey: "realm-settings:updatedUserProfileError",
@@ -75,7 +74,7 @@ export const AttributesTab = () => {
     continueButtonVariant: ButtonVariant.danger,
     onConfirm: async () => {
       save(
-        { attributes: updatedAttributes! },
+        { attributes: updatedAttributes!, groups: config?.groups },
         {
           successMessageKey: "realm-settings:deleteAttributeSuccess",
           errorMessageKey: "realm-settings:deleteAttributeError",

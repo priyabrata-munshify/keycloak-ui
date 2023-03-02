@@ -1,7 +1,7 @@
-import ListingPage from "../support/pages/admin_console/ListingPage";
-import UserProfile from "../support/pages/admin_console/manage/realm_settings/UserProfile";
-import Masthead from "../support/pages/admin_console/Masthead";
-import SidebarPage from "../support/pages/admin_console/SidebarPage";
+import ListingPage from "../support/pages/admin-ui/ListingPage";
+import UserProfile from "../support/pages/admin-ui/manage/realm_settings/UserProfile";
+import Masthead from "../support/pages/admin-ui/Masthead";
+import SidebarPage from "../support/pages/admin-ui/SidebarPage";
 import LoginPage from "../support/pages/LoginPage";
 import adminClient from "../support/util/AdminClient";
 import { keycloakBefore } from "../support/util/keycloak_hooks";
@@ -23,7 +23,7 @@ const clickCreateAttributeButton = () =>
   userProfileTab.createAttributeButtonClick();
 
 describe("User profile tabs", () => {
-  const realmName = "Realm_" + (Math.random() + 1).toString(36).substring(7);
+  const realmName = "Realm_" + crypto.randomUUID();
   const attributeName = "Test";
 
   before(() =>
@@ -35,8 +35,8 @@ describe("User profile tabs", () => {
   after(() => adminClient.deleteRealm(realmName));
 
   beforeEach(() => {
-    keycloakBefore();
     loginPage.logIn();
+    keycloakBefore();
     sidebarPage.goToRealm(realmName);
     sidebarPage.goToRealmSettings();
   });
@@ -46,7 +46,6 @@ describe("User profile tabs", () => {
       getUserProfileTab();
       getAttributesTab();
       clickCreateAttributeButton();
-      cy.get("p").should("have.text", "Create a new attribute");
     });
 
     it("Completes new attribute form and performs cancel", () => {
@@ -92,7 +91,7 @@ describe("User profile tabs", () => {
 
       userProfileTab.cancelRemovingValidator();
       userProfileTab.removeValidator();
-      cy.get('tbody [class="kc-emptyValidators"]').contains("No validators.");
+      cy.get(".kc-emptyValidators").contains("No validators.");
     });
   });
 
@@ -108,14 +107,31 @@ describe("User profile tabs", () => {
       getAttributesGroupTab();
       listingPage.deleteItem("Test");
       modalUtils.confirmModal();
-      listingPage.itemExist("Test", false);
+      listingPage.checkEmptyList();
     });
   });
 
   describe("Json Editor sub tab tests", () => {
-    it("Goes to Json Editor tab", () => {
+    const removedThree = `
+    {ctrl+a}{backspace}
+{
+  "attributes": [
+    {
+"name": "username",
+"validations": {
+  "length": {
+  "min": 3,
+"max": 255 {downArrow},
+"username-prohibited-characters": {
+`;
+
+    it("Removes three validators with the editor", () => {
       getUserProfileTab();
       getJsonEditorTab();
+      userProfileTab.typeJSON(removedThree).saveJSON();
+      masthead.checkNotificationMessage(
+        "User profile settings successfully updated."
+      );
     });
   });
 });

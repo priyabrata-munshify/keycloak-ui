@@ -1,9 +1,9 @@
-import ListingPage from "../support/pages/admin_console/ListingPage";
+import ListingPage from "../support/pages/admin-ui/ListingPage";
 import UserRegistration, {
   GroupPickerDialog,
-} from "../support/pages/admin_console/manage/realm_settings/UserRegistration";
-import Masthead from "../support/pages/admin_console/Masthead";
-import SidebarPage from "../support/pages/admin_console/SidebarPage";
+} from "../support/pages/admin-ui/manage/realm_settings/UserRegistration";
+import Masthead from "../support/pages/admin-ui/Masthead";
+import SidebarPage from "../support/pages/admin-ui/SidebarPage";
 import LoginPage from "../support/pages/LoginPage";
 import adminClient from "../support/util/AdminClient";
 import { keycloakBefore } from "../support/util/keycloak_hooks";
@@ -21,13 +21,11 @@ describe("Realm settings - User registration tab", () => {
 
   const groupName = "The default group";
 
-  before(() => {
-    adminClient.createGroup(groupName);
-    keycloakBefore();
-    loginPage.logIn();
-  });
+  before(() => adminClient.createGroup(groupName));
 
   beforeEach(() => {
+    loginPage.logIn();
+    keycloakBefore();
     sidebarPage.goToRealmSettings();
     userRegistration.goToTab();
   });
@@ -48,8 +46,8 @@ describe("Realm settings - User registration tab", () => {
     listingPage.markItemRow(role).removeMarkedItems("Unassign");
     sidebarPage.waitForPageLoad();
     modalUtils
-      .checkModalTitle("Remove mapping?")
-      .checkModalMessage("Are you sure you want to remove this mapping?")
+      .checkModalTitle("Remove role?")
+      .checkModalMessage("Are you sure you want to remove this role?")
       .checkConfirmButtonText("Remove")
       .confirmModal();
     masthead.checkNotificationMessage("Scope mapping successfully removed");

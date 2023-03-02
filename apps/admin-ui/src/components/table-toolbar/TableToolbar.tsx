@@ -1,12 +1,12 @@
-import { FunctionComponent, ReactNode, useState, KeyboardEvent } from "react";
 import {
+  Divider,
+  InputGroup,
+  SearchInput,
   Toolbar,
   ToolbarContent,
   ToolbarItem,
-  InputGroup,
-  Divider,
-  SearchInput,
 } from "@patternfly/react-core";
+import { KeyboardEvent, PropsWithChildren, ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 type TableToolbarProps = {
@@ -19,7 +19,7 @@ type TableToolbarProps = {
   inputGroupOnEnter?: (value: string) => void;
 };
 
-export const TableToolbar: FunctionComponent<TableToolbarProps> = ({
+export const TableToolbar = ({
   toolbarItem,
   subToolbar,
   toolbarItemFooter,
@@ -28,7 +28,7 @@ export const TableToolbar: FunctionComponent<TableToolbarProps> = ({
   inputGroupName,
   inputGroupPlaceholder,
   inputGroupOnEnter,
-}) => {
+}: PropsWithChildren<TableToolbarProps>) => {
   const { t } = useTranslation();
   const [searchValue, setSearchValue] = useState<string>("");
 
@@ -54,14 +54,16 @@ export const TableToolbar: FunctionComponent<TableToolbarProps> = ({
         <ToolbarContent>
           {inputGroupName && (
             <ToolbarItem>
-              <InputGroup>
+              <InputGroup data-testid={inputGroupName}>
                 {searchTypeComponent}
                 {inputGroupPlaceholder && (
                   <SearchInput
                     placeholder={inputGroupPlaceholder}
                     aria-label={t("search")}
                     value={searchValue}
-                    onChange={setSearchValue}
+                    onChange={(_, value) => {
+                      setSearchValue(value);
+                    }}
                     onSearch={onSearch}
                     onKeyDown={handleKeyDown}
                     onClear={() => {

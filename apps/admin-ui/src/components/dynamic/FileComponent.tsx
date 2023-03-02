@@ -1,12 +1,12 @@
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { Controller, useFormContext } from "react-hook-form";
 import { FormGroup } from "@patternfly/react-core";
+import { useState } from "react";
+import { Controller, useFormContext } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 
 import { HelpItem } from "../help-enabler/HelpItem";
+import { FileUpload } from "../json-file-upload/patternfly/FileUpload";
 import type { ComponentProps } from "./components";
 import { convertToName } from "./DynamicComponents";
-import { FileUpload } from "../json-file-upload/patternfly/FileUpload";
 
 export const FileComponent = ({
   name,
@@ -18,6 +18,7 @@ export const FileComponent = ({
   const { t } = useTranslation("dynamic");
   const { control } = useFormContext();
   const [filename, setFilename] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   return (
     <FormGroup
@@ -31,14 +32,24 @@ export const FileComponent = ({
         name={convertToName(name!)}
         control={control}
         defaultValue={defaultValue || ""}
-        render={({ onChange, value }) => (
+        render={({ field }) => (
           <FileUpload
             id={name!}
-            value={value}
+            value={field.value}
+            type="text"
             filename={filename}
             isDisabled={isDisabled}
+            onFileInputChange={(_, file) => setFilename(file.name)}
+            onReadStarted={() => setIsLoading(true)}
+            onReadFinished={() => setIsLoading(false)}
+            onClearClick={() => {
+              field.onChange("");
+              setFilename("");
+            }}
+            isLoading={isLoading}
+            allowEditingUploadedText={false}
             onChange={(value, filename) => {
-              onChange(value);
+              field.onChange(value);
               setFilename(filename);
             }}
           />

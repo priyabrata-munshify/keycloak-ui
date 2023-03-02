@@ -7,8 +7,7 @@ import {
 } from "@patternfly/react-core";
 import { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { Link } from "react-router-dom-v5-compat";
-import { useNavigate } from "react-router-dom-v5-compat";
+import { Link, useNavigate } from "react-router-dom";
 import { useConfirmDialog } from "../../components/confirm-dialog/ConfirmDialog";
 import { ListEmptyState } from "../../components/list-empty-state/ListEmptyState";
 import { KeycloakDataTable } from "../../components/table-toolbar/KeycloakDataTable";
@@ -19,7 +18,7 @@ import { useUserProfile } from "./UserProfileContext";
 
 export const AttributesGroupTab = () => {
   const { config, save } = useUserProfile();
-  const { t } = useTranslation("attributes-group");
+  const { t } = useTranslation("realm-settings");
   const navigate = useNavigate();
   const { realm } = useRealm();
   const [key, setKey] = useState(0);
@@ -33,9 +32,9 @@ export const AttributesGroupTab = () => {
   }
 
   const [toggleDeleteDialog, DeleteConfirm] = useConfirmDialog({
-    titleKey: "attributes-group:deleteDialogTitle",
+    titleKey: "realm-settings:deleteDialogTitle",
     children: (
-      <Trans i18nKey="attributes-group:deleteDialogDescription">
+      <Trans i18nKey="realm-settings:deleteDialogDescription">
         {" "}
         <strong>{{ group: groupToDelete?.name }}</strong>.
       </Trans>
@@ -50,8 +49,8 @@ export const AttributesGroupTab = () => {
       save(
         { ...config, groups },
         {
-          successMessageKey: "attributes-group:deleteSuccess",
-          errorMessageKey: "attributes-group:deleteError",
+          successMessageKey: "realm-settings:deleteSuccess",
+          errorMessageKey: "realm-settings:deleteAttributeGroupError",
         }
       );
     },
@@ -68,7 +67,7 @@ export const AttributesGroupTab = () => {
       <KeycloakDataTable
         key={key}
         loader={loader}
-        ariaLabelKey="attributes-group:tableTitle"
+        ariaLabelKey="realm-settings:tableTitle"
         toolbarItem={
           <ToolbarItem>
             <Button
@@ -83,7 +82,7 @@ export const AttributesGroupTab = () => {
         columns={[
           {
             name: "name",
-            displayKey: "attributes-group:columnName",
+            displayKey: "realm-settings:columnName",
             cellRenderer: (group) => (
               <Link to={toEditAttributesGroup({ realm, name: group.name! })}>
                 {group.name}
@@ -92,11 +91,11 @@ export const AttributesGroupTab = () => {
           },
           {
             name: "displayHeader",
-            displayKey: "attributes-group:columnDisplayName",
+            displayKey: "realm-settings:columnDisplayName",
           },
           {
             name: "displayDescription",
-            displayKey: "attributes-group:columnDisplayDescription",
+            displayKey: "realm-settings:columnDisplayDescription",
           },
         ]}
         actions={[

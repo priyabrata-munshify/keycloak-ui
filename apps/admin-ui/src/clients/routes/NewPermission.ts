@@ -1,6 +1,6 @@
 import { lazy } from "react";
-import type { Path } from "react-router-dom-v5-compat";
-import { generatePath } from "react-router-dom-v5-compat";
+import type { Path } from "react-router-dom";
+import { generatePath } from "react-router-dom";
 import type { RouteDef } from "../../route-config";
 
 export type PermissionType = "resource" | "scope";
@@ -21,7 +21,7 @@ export const NewPermissionRoute: RouteDef = {
 
 export const NewPermissionWithSelectedIdRoute: RouteDef = {
   ...NewPermissionRoute,
-  path: "/:realm/clients/:id/authorization/permission/new/:permissionType/:selectedId?",
+  path: "/:realm/clients/:id/authorization/permission/new/:permissionType/:selectedId",
 };
 
 export const toNewPermission = (params: NewPermissionParams): Partial<Path> => {

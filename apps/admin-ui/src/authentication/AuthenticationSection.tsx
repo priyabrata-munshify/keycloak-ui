@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { useHistory } from "react-router-dom";
-import { Link } from "react-router-dom-v5-compat";
+import { Link } from "react-router-dom";
 import { Trans, useTranslation } from "react-i18next";
 import { sortBy } from "lodash-es";
 import {
@@ -32,12 +31,13 @@ import helpUrls from "../help-urls";
 import { BindFlowDialog } from "./BindFlowDialog";
 import { UsedBy } from "./components/UsedBy";
 import {
-  routableTab,
   RoutableTabs,
+  useRoutableTab,
 } from "../components/routable-tabs/RoutableTabs";
 import { AuthenticationTab, toAuthentication } from "./routes/Authentication";
 import { addTrailingSlash } from "../util";
 import { getAuthorizationHeaders } from "../utils/getAuthorizationHeaders";
+import useLocaleSort, { mapByKey } from "../utils/useLocaleSort";
 
 import "./authentication-section.css";
 
@@ -56,15 +56,40 @@ export const REALM_FLOWS = new Map<string, string>([
   ["dockerAuthenticationFlow", "docker auth"],
 ]);
 
+const UsedByRenderer = (authType: AuthenticationType) => (
+  <UsedBy authType={authType} />
+);
+
+const AliasRenderer = ({ id, alias, usedBy, builtIn }: AuthenticationType) => {
+  const { t } = useTranslation("authentication");
+  const { realm } = useRealm();
+
+  return (
+    <>
+      <Link
+        to={toFlow({
+          realm,
+          id: id!,
+          usedBy: usedBy?.type || "notInUse",
+          builtIn: builtIn ? "builtIn" : undefined,
+        })}
+        key={`link-${id}`}
+      >
+        {alias}
+      </Link>{" "}
+      {builtIn && <Label key={`label-${id}`}>{t("buildIn")}</Label>}
+    </>
+  );
+};
+
 export default function AuthenticationSection() {
   const { t } = useTranslation("authentication");
   const { adminClient } = useAdminClient();
   const { realm } = useRealm();
-  const history = useHistory();
   const [key, setKey] = useState(0);
   const refresh = () => setKey(key + 1);
   const { addAlert, addError } = useAlerts();
-
+  const localeSort = useLocaleSort();
   const [selectedFlow, setSelectedFlow] = useState<AuthenticationType>();
   const [open, toggleOpen] = useToggle();
   const [bindFlowOpen, toggleBindFlow] = useToggle();
@@ -73,7 +98,7 @@ export default function AuthenticationSection() {
     const flowsRequest = await fetch(
       `${addTrailingSlash(
         adminClient.baseUrl
-      )}admin/realms/${realm}/admin-ui-authentication-management/flows`,
+      )}admin/realms/${realm}/ui-ext/authentication-management/flows`,
       {
         method: "GET",
         headers: getAuthorizationHeaders(await adminClient.getAccessToken()),
@@ -81,8 +106,22 @@ export default function AuthenticationSection() {
     );
     const flows = await flowsRequest.json();
 
-    return sortBy(flows as AuthenticationType[], (flow) => flow.usedBy?.type);
+    if (!flows) {
+      return [];
+    }
+
+    return sortBy(
+      localeSort<AuthenticationType>(flows, mapByKey("alias")),
+      (flow) => flow.usedBy?.type
+    );
   };
+
+  const useTab = (tab: AuthenticationTab) =>
+    useRoutableTab(toAuthentication({ realm, tab }));
+
+  const flowsTab = useTab("flows");
+  const requiredActionsTab = useTab("required-actions");
+  const policiesTab = useTab("policies");
 
   const [toggleDeleteDialog, DeleteConfirm] = useConfirmDialog({
     titleKey: "authentication:deleteConfirmFlow",
@@ -106,38 +145,6 @@ export default function AuthenticationSection() {
       }
     },
   });
-
-  const UsedByRenderer = (authType: AuthenticationType) => (
-    <UsedBy authType={authType} />
-  );
-
-  const AliasRenderer = ({
-    id,
-    alias,
-    usedBy,
-    builtIn,
-  }: AuthenticationType) => (
-    <>
-      <Link
-        to={toFlow({
-          realm,
-          id: id!,
-          usedBy: usedBy?.type || "notInUse",
-          builtIn: builtIn ? "builtIn" : undefined,
-        })}
-        key={`link-${id}`}
-      >
-        {alias}
-      </Link>{" "}
-      {builtIn && <Label key={`label-${id}`}>{t("buildIn")}</Label>}
-    </>
-  );
-
-  const route = (tab: AuthenticationTab) =>
-    routableTab({
-      to: toAuthentication({ realm, tab }),
-      history,
-    });
 
   return (
     <>
@@ -176,7 +183,7 @@ export default function AuthenticationSection() {
           <Tab
             data-testid="flows"
             title={<TabTitleText>{t("flows")}</TabTitleText>}
-            {...route("flows")}
+            {...flowsTab}
           >
             <KeycloakDataTable
               key={key}
@@ -229,12 +236,12 @@ export default function AuthenticationSection() {
                 {
                   name: "alias",
                   displayKey: "authentication:flowName",
-                  cellRenderer: AliasRenderer,
+                  cellRenderer: (row) => <AliasRenderer {...row} />,
                 },
                 {
                   name: "usedBy",
                   displayKey: "authentication:usedBy",
-                  cellRenderer: UsedByRenderer,
+                  cellRenderer: (row) => <UsedByRenderer {...row} />,
                 },
                 {
                   name: "description",
@@ -252,14 +259,14 @@ export default function AuthenticationSection() {
           <Tab
             data-testid="requiredActions"
             title={<TabTitleText>{t("requiredActions")}</TabTitleText>}
-            {...route("required-actions")}
+            {...requiredActionsTab}
           >
             <RequiredActions />
           </Tab>
           <Tab
             data-testid="policies"
             title={<TabTitleText>{t("policies")}</TabTitleText>}
-            {...route("policies")}
+            {...policiesTab}
           >
             <Policies />
           </Tab>

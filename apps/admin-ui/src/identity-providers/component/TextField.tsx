@@ -8,12 +8,10 @@ export const TextField = ({ label, field, isReadOnly = false }: FieldProps) => {
   return (
     <FormGroupField label={label}>
       <KeycloakTextInput
-        type="text"
         id={label}
         data-testid={label}
-        name={field}
-        ref={register}
         isReadOnly={isReadOnly}
+        {...register(field)}
       />
     </FormGroupField>
   );

@@ -1,14 +1,14 @@
 import LoginPage from "../support/pages/LoginPage";
-import Masthead from "../support/pages/admin_console/Masthead";
+import Masthead from "../support/pages/admin-ui/Masthead";
 import ModalUtils from "../support/util/ModalUtils";
-import ListingPage from "../support/pages/admin_console/ListingPage";
-import SidebarPage from "../support/pages/admin_console/SidebarPage";
-import createRealmRolePage from "../support/pages/admin_console/manage/realm_roles/CreateRealmRolePage";
-import AssociatedRolesPage from "../support/pages/admin_console/manage/realm_roles/AssociatedRolesPage";
+import ListingPage from "../support/pages/admin-ui/ListingPage";
+import SidebarPage from "../support/pages/admin-ui/SidebarPage";
+import createRealmRolePage from "../support/pages/admin-ui/manage/realm_roles/CreateRealmRolePage";
+import AssociatedRolesPage from "../support/pages/admin-ui/manage/realm_roles/AssociatedRolesPage";
 import { keycloakBefore } from "../support/util/keycloak_hooks";
 import adminClient from "../support/util/AdminClient";
-import ClientRolesTab from "../support/pages/admin_console/manage/clients/ClientRolesTab";
-import KeyValueInput from "../support/pages/admin_console/manage/KeyValueInput";
+import ClientRolesTab from "../support/pages/admin-ui/manage/clients/ClientRolesTab";
+import KeyValueInput from "../support/pages/admin-ui/manage/KeyValueInput";
 
 let itemId = "realm_role_crud";
 const loginPage = new LoginPage();
@@ -21,8 +21,8 @@ const rolesTab = new ClientRolesTab();
 
 describe("Realm roles test", () => {
   beforeEach(() => {
-    keycloakBefore();
     loginPage.logIn();
+    keycloakBefore();
     sidebarPage.goToRealmRoles();
   });
 
@@ -46,7 +46,7 @@ describe("Realm roles test", () => {
   });
 
   it("Realm role CRUD test", () => {
-    itemId += "_" + (Math.random() + 1).toString(36).substring(7);
+    itemId += "_" + crypto.randomUUID();
 
     // Create
     listingPage.itemExist(itemId, false).goToCreateItem();
@@ -69,7 +69,7 @@ describe("Realm roles test", () => {
   });
 
   it("should delete role from details action", () => {
-    itemId += "_" + (Math.random() + 1).toString(36).substring(7);
+    itemId += "_" + crypto.randomUUID();
     listingPage.goToCreateItem();
     createRealmRolePage.fillRealmRoleData(itemId).save();
     masthead.checkNotificationMessage("Role created", true);
@@ -89,7 +89,7 @@ describe("Realm roles test", () => {
   });
 
   it("Add associated roles test", () => {
-    itemId += "_" + (Math.random() + 1).toString(36).substring(7);
+    itemId += "_" + crypto.randomUUID();
 
     // Create
     listingPage.itemExist(itemId, false).goToCreateItem();
@@ -153,7 +153,7 @@ describe("Realm roles test", () => {
     rolesTab.goToAssociatedRolesTab();
     listingPage.removeItem("create-realm");
     sidebarPage.waitForPageLoad();
-    modalUtils.checkModalTitle("Remove mapping?").confirmModal();
+    modalUtils.checkModalTitle("Remove role?").confirmModal();
     sidebarPage.waitForPageLoad();
 
     masthead.checkNotificationMessage(
@@ -172,7 +172,7 @@ describe("Realm roles test", () => {
     associatedRolesPage.removeAssociatedRoles();
 
     sidebarPage.waitForPageLoad();
-    modalUtils.checkModalTitle("Remove mapping?").confirmModal();
+    modalUtils.checkModalTitle("Remove role?").confirmModal();
     sidebarPage.waitForPageLoad();
 
     masthead.checkNotificationMessage(
@@ -183,7 +183,7 @@ describe("Realm roles test", () => {
 
   it("Should delete associated roles from list test", () => {
     itemId = "realm_role_crud";
-    itemId += "_" + (Math.random() + 1).toString(36).substring(7);
+    itemId += "_" + crypto.randomUUID();
 
     // Create
     listingPage.itemExist(itemId, false).goToCreateItem();
@@ -203,7 +203,7 @@ describe("Realm roles test", () => {
     // delete associated roles from list
     listingPage.removeItem("create-realm");
     sidebarPage.waitForPageLoad();
-    modalUtils.checkModalTitle("Remove mapping?").confirmModal();
+    modalUtils.checkModalTitle("Remove role?").confirmModal();
     sidebarPage.waitForPageLoad();
 
     masthead.checkNotificationMessage(
@@ -212,7 +212,7 @@ describe("Realm roles test", () => {
     );
     listingPage.removeItem("offline_access");
     sidebarPage.waitForPageLoad();
-    modalUtils.checkModalTitle("Remove mapping?").confirmModal();
+    modalUtils.checkModalTitle("Remove role?").confirmModal();
     sidebarPage.waitForPageLoad();
 
     masthead.checkNotificationMessage(
@@ -243,13 +243,6 @@ describe("Realm roles test", () => {
       createRealmRolePage.checkDescription(updateDescription);
     });
 
-    it("should revert realm role", () => {
-      listingPage.itemExist(editRoleName).goToItemDetails(editRoleName);
-      createRealmRolePage.checkDescription(updateDescription);
-      createRealmRolePage.updateDescription("going to revert").cancel();
-      createRealmRolePage.checkDescription(updateDescription);
-    });
-
     const keyValue = new KeyValueInput("attributes");
     it("should add attribute", () => {
       listingPage.itemExist(editRoleName).goToItemDetails(editRoleName);
@@ -258,7 +251,7 @@ describe("Realm roles test", () => {
       keyValue.fillKeyValue({ key: "one", value: "1" }).validateRows(2);
       keyValue.save();
       masthead.checkNotificationMessage("The role has been saved", true);
-      keyValue.validateRows(1);
+      keyValue.validateRows(2);
     });
 
     it("should add attribute multiple", () => {
@@ -269,14 +262,14 @@ describe("Realm roles test", () => {
         .fillKeyValue({ key: "two", value: "2" }, 1)
         .fillKeyValue({ key: "three", value: "3" }, 2)
         .save()
-        .validateRows(3);
+        .validateRows(4);
     });
 
     it("should delete attribute", () => {
       listingPage.itemExist(editRoleName).goToItemDetails(editRoleName);
       createRealmRolePage.goToAttributesTab();
 
-      keyValue.deleteRow(1).save().validateRows(2);
+      keyValue.deleteRow(1).save().validateRows(3);
     });
   });
 });

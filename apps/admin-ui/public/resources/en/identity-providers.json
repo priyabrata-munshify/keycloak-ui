@@ -37,7 +37,7 @@
   "samlEndpointsLabel": "SAML 2.0 Service Provider Metadata",
   "createSuccess": "Identity provider successfully created",
   "createError": "Could not create the identity provider: {{error}}",
-  "orderDialogIntro": "The order that the providers are listed in the login page or the account console. You can drag the row handles to change the order.",
+  "orderDialogIntro": "The order that the providers are listed in the login page or the Account UI. You can drag the row handles to change the order.",
   "manageOrderTableAria": "List of identity providers in the order listed on the login page",
   "orderChangeSuccess": "Successfully changed display order of identity providers",
   "orderChangeError": "Could not change display order of identity providers {{error}}",
@@ -75,6 +75,7 @@
   "httpPostBindingLogout": "HTTP-POST binding logout",
   "wantAuthnRequestsSigned": "Want AuthnRequests signed",
   "signatureAlgorithm": "Signature algorithm",
+  "encryptionAlgorithm": "Encryption Algorithm",
   "samlSignatureKeyName": "SAML signature key name",
   "wantAssertionsSigned": "Want Assertions signed",
   "wantAssertionsEncrypted": "Want Assertions encrypted",
@@ -116,6 +117,8 @@
     "client_secret_jwt": "Client secret as jwt",
     "private_key_jwt": "JWT signed with private key"
   },
+  "clientAssertionSigningAlg": "Client asserion signature algorithm",
+  "algorithmNotSpecified": "Algorithm not specified",
   "acceptsPromptNone": "Accepts prompt=none forward from client",
   "validateSignature": "Validate Signatures",
   "useJwksUrl": "Use JWKS URL",
@@ -189,5 +192,8 @@
   },
   "stackoverflow": {
     "key": "Key"
+  },
+  "linkedin": {
+    "profileProjection": "Profile Projection"
   }
 }

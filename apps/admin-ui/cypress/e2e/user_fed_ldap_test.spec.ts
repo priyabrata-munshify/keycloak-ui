@@ -1,7 +1,7 @@
 import LoginPage from "../support/pages/LoginPage";
-import SidebarPage from "../support/pages/admin_console/SidebarPage";
-import ProviderPage from "../support/pages/admin_console/manage/providers/ProviderPage";
-import Masthead from "../support/pages/admin_console/Masthead";
+import SidebarPage from "../support/pages/admin-ui/SidebarPage";
+import ProviderPage from "../support/pages/admin-ui/manage/providers/ProviderPage";
+import Masthead from "../support/pages/admin-ui/Masthead";
 import ModalUtils from "../support/util/ModalUtils";
 import { keycloakBefore } from "../support/util/keycloak_hooks";
 
@@ -21,12 +21,12 @@ const secondLdapVendor = "Other";
 const updatedLdapName = `${firstLdapName}-updated`;
 
 // connection and authentication settings
-const connectionUrlValid = "ldap://www.zflexldap.com";
+const connectionUrlValid = "ldap://localhost:3004";
 const bindTypeSimple = "simple";
 const truststoreSpiOnlyLdaps = "Only for ldaps";
 const connectionTimeoutTwoSecs = "2000";
-const bindDnCnDc = "cn=ro_admin,ou=sysadmins,dc=zflexsoftware,dc=com";
-const bindCredsValid = "zflexpass";
+const bindDnCnDc = "cn=user,dc=test";
+const bindCredsValid = "user";
 
 const connectionUrlInvalid = "ldap://nowhere.com";
 const bindTypeNone = "none";
@@ -97,12 +97,9 @@ const ldapTestFailMsg =
   "Error when trying to connect to LDAP. See server.log for details. LDAP test error";
 
 describe("User Federation LDAP tests", () => {
-  before(() => {
-    keycloakBefore();
-    loginPage.logIn();
-  });
-
   beforeEach(() => {
+    loginPage.logIn();
+    keycloakBefore();
     sidebarPage.goToUserFederation();
     cy.intercept("GET", "/admin/realms/master").as("getProvider");
   });
@@ -458,8 +455,6 @@ describe("User Federation LDAP tests", () => {
       providersPage.ldapEditModeInput,
       editModeUnsynced
     );
-
-    masthead.closeAllAlertMessages();
   });
 
   it("Should update display name", () => {

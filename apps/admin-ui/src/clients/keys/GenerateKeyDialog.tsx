@@ -24,6 +24,7 @@ import type KeyStoreConfig from "@keycloak/keycloak-admin-client/lib/defs/keysto
 import { HelpItem } from "../../components/help-enabler/HelpItem";
 import { StoreSettings } from "./StoreSettings";
 import { FileUpload } from "../../components/json-file-upload/patternfly/FileUpload";
+import { useServerInfo } from "../../context/server-info/ServerInfoProvider";
 
 type GenerateKeyDialogProps = {
   clientId: string;
@@ -33,15 +34,42 @@ type GenerateKeyDialogProps = {
 
 type KeyFormProps = {
   useFile?: boolean;
+  isSaml?: boolean;
+  hasPem?: boolean;
 };
 
-export const KeyForm = ({ useFile = false }: KeyFormProps) => {
+const CERT_PEM = "Certificate PEM" as const;
+
+const extensions = new Map([
+  ["PKCS12", "p12"],
+  ["JKS", "jks"],
+  ["BCFKS", "bcfks"],
+]);
+
+type FormFields = KeyStoreConfig & {
+  file: string | File;
+};
+
+export const getFileExtension = (format: string) => extensions.get(format);
+
+export const KeyForm = ({
+  isSaml = false,
+  hasPem = false,
+  useFile = false,
+}: KeyFormProps) => {
   const { t } = useTranslation("clients");
 
   const [filename, setFilename] = useState<string>();
   const [openArchiveFormat, setOpenArchiveFormat] = useState(false);
 
-  const { control } = useFormContext<KeyStoreConfig>();
+  const { control, watch } = useFormContext<FormFields>();
+  const format = watch("format");
+
+  const { cryptoInfo } = useServerInfo();
+  const supportedKeystoreTypes = [
+    ...(cryptoInfo?.supportedKeystoreTypes ?? []),
+    ...(hasPem ? CERT_PEM : []),
+  ];
 
   return (
     <Form className="pf-u-pt-lg">
@@ -57,24 +85,24 @@ export const KeyForm = ({ useFile = false }: KeyFormProps) => {
       >
         <Controller
           name="format"
-          defaultValue="JKS"
+          defaultValue={supportedKeystoreTypes[0]}
           control={control}
-          render={({ onChange, value }) => (
+          render={({ field }) => (
             <Select
               toggleId="archiveFormat"
               onToggle={setOpenArchiveFormat}
               onSelect={(_, value) => {
-                onChange(value.toString());
+                field.onChange(value.toString());
                 setOpenArchiveFormat(false);
               }}
-              selections={value}
+              selections={field.value}
               variant={SelectVariant.single}
               aria-label={t("archiveFormat")}
               isOpen={openArchiveFormat}
             >
-              {["JKS", "PKCS12"].map((option) => (
+              {supportedKeystoreTypes.map((option) => (
                 <SelectOption
-                  selected={option === value}
+                  selected={option === field.value}
                   key={option}
                   value={option}
                 />
@@ -98,22 +126,24 @@ export const KeyForm = ({ useFile = false }: KeyFormProps) => {
             name="file"
             defaultValue=""
             control={control}
-            render={({ onChange, value }) => (
+            render={({ field }) => (
               <FileUpload
                 id="importFile"
-                value={value}
+                value={field.value}
                 filename={filename}
                 browseButtonText={t("browse")}
                 onChange={(value, filename) => {
                   setFilename(filename);
-                  onChange(value);
+                  field.onChange(value);
                 }}
               />
             )}
           />
         </FormGroup>
       )}
-      <StoreSettings hidePassword={useFile} />
+      {format !== CERT_PEM && (
+        <StoreSettings hidePassword={useFile} isSaml={isSaml} />
+      )}
     </Form>
   );
 };

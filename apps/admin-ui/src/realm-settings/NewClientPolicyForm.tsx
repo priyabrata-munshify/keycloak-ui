@@ -1,4 +1,5 @@
-import { useState } from "react";
+import type ClientPolicyRepresentation from "@keycloak/keycloak-admin-client/lib/defs/clientPolicyRepresentation";
+import type ClientProfileRepresentation from "@keycloak/keycloak-admin-client/lib/defs/clientProfileRepresentation";
 import {
   ActionGroup,
   AlertVariant,
@@ -19,34 +20,33 @@ import {
   TextVariants,
   ValidatedOptions,
 } from "@patternfly/react-core";
-import { useTranslation } from "react-i18next";
-import { Controller, useForm } from "react-hook-form";
-import { FormAccess } from "../components/form-access/FormAccess";
-import { ViewHeader } from "../components/view-header/ViewHeader";
-import { useParams } from "react-router-dom";
-import { Link, useNavigate } from "react-router-dom-v5-compat";
-import { useRealm } from "../context/realm-context/RealmContext";
-import { useAlerts } from "../components/alert/Alerts";
-import { useAdminClient, useFetch } from "../context/auth/AdminClient";
-import { HelpItem } from "../components/help-enabler/HelpItem";
-import { KeycloakTextInput } from "../components/keycloak-text-input/KeycloakTextInput";
-import { KeycloakTextArea } from "../components/keycloak-text-area/KeycloakTextArea";
 import { PlusCircleIcon, TrashIcon } from "@patternfly/react-icons";
-import { useConfirmDialog } from "../components/confirm-dialog/ConfirmDialog";
-import type ClientPolicyRepresentation from "@keycloak/keycloak-admin-client/lib/defs/clientPolicyRepresentation";
-import { toNewClientPolicyCondition } from "./routes/AddCondition";
-import { useServerInfo } from "../context/server-info/ServerInfoProvider";
-import { toEditClientPolicyCondition } from "./routes/EditCondition";
-import { toClientProfile } from "./routes/ClientProfile";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
+import { Link, useNavigate } from "react-router-dom";
 
+import { useAlerts } from "../components/alert/Alerts";
+import { useConfirmDialog } from "../components/confirm-dialog/ConfirmDialog";
+import { FormAccess } from "../components/form-access/FormAccess";
+import { HelpItem } from "../components/help-enabler/HelpItem";
+import { KeycloakSpinner } from "../components/keycloak-spinner/KeycloakSpinner";
+import { KeycloakTextArea } from "../components/keycloak-text-area/KeycloakTextArea";
+import { KeycloakTextInput } from "../components/keycloak-text-input/KeycloakTextInput";
+import { ViewHeader } from "../components/view-header/ViewHeader";
+import { useAdminClient, useFetch } from "../context/auth/AdminClient";
+import { useRealm } from "../context/realm-context/RealmContext";
+import { useServerInfo } from "../context/server-info/ServerInfoProvider";
+import { useParams } from "../utils/useParams";
+import { AddClientProfileModal } from "./AddClientProfileModal";
+import { toNewClientPolicyCondition } from "./routes/AddCondition";
+import { toClientPolicies } from "./routes/ClientPolicies";
+import { toClientProfile } from "./routes/ClientProfile";
 import {
   EditClientPolicyParams,
   toEditClientPolicy,
 } from "./routes/EditClientPolicy";
-import { AddClientProfileModal } from "./AddClientProfileModal";
-import type ClientProfileRepresentation from "@keycloak/keycloak-admin-client/lib/defs/clientProfileRepresentation";
-import { toClientPolicies } from "./routes/ClientPolicies";
-import { KeycloakSpinner } from "../components/keycloak-spinner/KeycloakSpinner";
+import { toEditClientPolicyCondition } from "./routes/EditCondition";
 
 import "./realm-settings-section.css";
 
@@ -67,12 +67,6 @@ type PolicyDetailAttributes = {
 
 export default function NewClientPolicyForm() {
   const { t } = useTranslation("realm-settings");
-  const {
-    reset: resetForm,
-    formState: { errors },
-  } = useForm<NewClientPolicyForm>({
-    defaultValues,
-  });
   const { realm } = useRealm();
   const { addAlert, addError } = useAlerts();
   const { adminClient } = useAdminClient();
@@ -99,7 +93,10 @@ export default function NewClientPolicyForm() {
   const { policyName } = useParams<EditClientPolicyParams>();
 
   const navigate = useNavigate();
-  const form = useForm<ClientPolicyRepresentation>({ mode: "onChange" });
+  const form = useForm<NewClientPolicyForm>({
+    mode: "onChange",
+    defaultValues,
+  });
   const { handleSubmit } = form;
 
   const formValues = form.getValues();
@@ -206,10 +203,7 @@ export default function NewClientPolicyForm() {
   );
 
   const setupForm = (policy: ClientPolicyRepresentation) => {
-    resetForm();
-    Object.entries(policy).map(([key, value]) => {
-      form.setValue(key, value);
-    });
+    form.reset(policy);
   };
 
   const policy = (policies || []).filter(
@@ -385,8 +379,13 @@ export default function NewClientPolicyForm() {
   });
 
   const reset = () => {
-    form.setValue("name", currentPolicy?.name);
-    form.setValue("description", currentPolicy?.description);
+    if (currentPolicy?.name !== undefined) {
+      form.setValue("name", currentPolicy.name);
+    }
+
+    if (currentPolicy?.description !== undefined) {
+      form.setValue("description", currentPolicy.description);
+    }
   };
 
   const toggleModal = () => {
@@ -404,7 +403,7 @@ export default function NewClientPolicyForm() {
       (policy) => createdPolicy.name === policy.name
     );
 
-    if (!index || index === -1) {
+    if (index === undefined || index === -1) {
       return;
     }
 
@@ -445,10 +444,10 @@ export default function NewClientPolicyForm() {
         name="enabled"
         defaultValue={true}
         control={form.control}
-        render={({ onChange, value }) => (
+        render={({ field }) => (
           <ClientPoliciesHeader
-            value={value}
-            onChange={onChange}
+            value={field.value}
+            onChange={field.onChange}
             realmName={realm}
             save={save}
           />
@@ -465,27 +464,36 @@ export default function NewClientPolicyForm() {
             label={t("common:name")}
             fieldId="kc-client-profile-name"
             isRequired
-            helperTextInvalid={t("common:required")}
+            helperTextInvalid={form.formState.errors.name?.message}
             validated={
-              errors.name ? ValidatedOptions.error : ValidatedOptions.default
+              form.formState.errors.name
+                ? ValidatedOptions.error
+                : ValidatedOptions.default
             }
           >
             <KeycloakTextInput
-              ref={form.register({ required: true })}
-              type="text"
               id="kc-client-profile-name"
-              name="name"
               data-testid="client-policy-name"
+              validated={
+                form.formState.errors.name
+                  ? ValidatedOptions.error
+                  : ValidatedOptions.default
+              }
+              {...form.register("name", {
+                required: { value: true, message: t("common:required") },
+                validate: (value) =>
+                  policies?.some((policy) => policy.name === value)
+                    ? t("createClientProfileNameHelperText").toString()
+                    : true,
+              })}
             />
           </FormGroup>
           <FormGroup label={t("common:description")} fieldId="kc-description">
             <KeycloakTextArea
-              name="description"
               aria-label={t("description")}
-              ref={form.register()}
-              type="text"
               id="kc-client-policy-description"
               data-testid="client-policy-description"
+              {...form.register("description")}
             />
           </FormGroup>
           <ActionGroup>
@@ -493,7 +501,7 @@ export default function NewClientPolicyForm() {
               variant="primary"
               type="submit"
               data-testid="saveCreatePolicy"
-              isDisabled={!formValues.name}
+              isDisabled={!form.formState.isValid}
             >
               {t("common:save")}
             </Button>

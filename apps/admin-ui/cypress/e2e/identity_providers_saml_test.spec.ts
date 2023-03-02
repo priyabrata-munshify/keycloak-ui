@@ -1,11 +1,12 @@
-import Masthead from "../support/pages/admin_console/Masthead";
-import SidebarPage from "../support/pages/admin_console/SidebarPage";
+import Masthead from "../support/pages/admin-ui/Masthead";
+import SidebarPage from "../support/pages/admin-ui/SidebarPage";
 import LoginPage from "../support/pages/LoginPage";
 import { keycloakBefore } from "../support/util/keycloak_hooks";
-import ListingPage from "../support/pages/admin_console/ListingPage";
-import CreateProviderPage from "../support/pages/admin_console/manage/identity_providers/CreateProviderPage";
+import ListingPage from "../support/pages/admin-ui/ListingPage";
+import CreateProviderPage from "../support/pages/admin-ui/manage/identity_providers/CreateProviderPage";
 import ModalUtils from "../support/util/ModalUtils";
-import AddMapperPage from "../support/pages/admin_console/manage/identity_providers/AddMapperPage";
+import AddMapperPage from "../support/pages/admin-ui/manage/identity_providers/AddMapperPage";
+import ProviderSAMLSettings from "../support/pages/admin-ui/manage/identity_providers/social/ProviderSAMLSettings";
 
 describe("SAML identity provider test", () => {
   const loginPage = new LoginPage();
@@ -29,13 +30,14 @@ describe("SAML identity provider test", () => {
 
   const keycloakServer = Cypress.env("KEYCLOAK_SERVER");
   const samlDiscoveryUrl = `${keycloakServer}/realms/master/protocol/saml/descriptor`;
+  const samlDisplayName = "saml";
 
   describe("SAML identity provider creation", () => {
     const samlProviderName = "saml";
 
     beforeEach(() => {
-      keycloakBefore();
       loginPage.logIn();
+      keycloakBefore();
       sidebarPage.goToIdentityProviders();
     });
 
@@ -45,6 +47,7 @@ describe("SAML identity provider test", () => {
         .clickCard(samlProviderName);
       createProviderPage.checkAddButtonDisabled();
       createProviderPage
+        .fillDisplayName(samlDisplayName)
         .fillDiscoveryUrl(samlDiscoveryUrl)
         .shouldBeSuccessful()
         .clickAdd();
@@ -146,6 +149,32 @@ describe("SAML identity provider test", () => {
       listingPage.goToItemDetails("SAML mapper");
       addMapperPage.editSAMLorOIDCMapper();
       masthead.checkNotificationMessage(saveMapperSuccessMsg, true);
+    });
+
+    it("should edit SAML settings", () => {
+      const providerSAMLSettings = new ProviderSAMLSettings();
+
+      sidebarPage.goToIdentityProviders();
+      listingPage.goToItemDetails(samlProviderName);
+      providerSAMLSettings.disableProviderSwitch();
+      sidebarPage.goToIdentityProviders();
+      cy.findByText("Disabled");
+      listingPage.goToItemDetails(samlProviderName);
+      providerSAMLSettings.enableProviderSwitch();
+
+      cy.get(".pf-c-jump-links__list").contains("SAML settings").click();
+      providerSAMLSettings.assertIdAndURLFields();
+      providerSAMLSettings.assertNameIdPolicyFormat();
+      providerSAMLSettings.assertPrincipalType();
+      providerSAMLSettings.assertSAMLSwitches();
+      providerSAMLSettings.assertSignatureAlgorithm();
+      providerSAMLSettings.assertValidateSignatures();
+      providerSAMLSettings.assertTextFields();
+
+      cy.get(".pf-c-jump-links__list")
+        .contains("Requested AuthnContext Constraints")
+        .click();
+      providerSAMLSettings.assertAuthnContext();
     });
 
     it("clean up providers", () => {

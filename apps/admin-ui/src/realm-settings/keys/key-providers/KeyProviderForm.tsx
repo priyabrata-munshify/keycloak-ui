@@ -1,27 +1,29 @@
-import { useParams } from "react-router-dom";
-import { useTranslation } from "react-i18next";
-import { Controller, FormProvider, useForm } from "react-hook-form";
-import {
-  AlertVariant,
-  FormGroup,
-  ValidatedOptions,
-  TextInput,
-  PageSection,
-  ActionGroup,
-  Button,
-} from "@patternfly/react-core";
-
 import type ComponentRepresentation from "@keycloak/keycloak-admin-client/lib/defs/componentRepresentation";
-import type { KeyProviderParams, ProviderType } from "../../routes/KeyProvider";
+import {
+  ActionGroup,
+  AlertVariant,
+  Button,
+  FormGroup,
+  PageSection,
+  TextInput,
+  ValidatedOptions,
+} from "@patternfly/react-core";
+import { Controller, FormProvider, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+
 import { useAlerts } from "../../../components/alert/Alerts";
-import { useAdminClient, useFetch } from "../../../context/auth/AdminClient";
+import { DynamicComponents } from "../../../components/dynamic/DynamicComponents";
 import { FormAccess } from "../../../components/form-access/FormAccess";
 import { HelpItem } from "../../../components/help-enabler/HelpItem";
-import { KEY_PROVIDER_TYPE } from "../../../util";
-import { ViewHeader } from "../../../components/view-header/ViewHeader";
-import { DynamicComponents } from "../../../components/dynamic/DynamicComponents";
 import { KeycloakTextInput } from "../../../components/keycloak-text-input/KeycloakTextInput";
+import { ViewHeader } from "../../../components/view-header/ViewHeader";
+import { useAdminClient, useFetch } from "../../../context/auth/AdminClient";
 import { useServerInfo } from "../../../context/server-info/ServerInfoProvider";
+import { KEY_PROVIDER_TYPE } from "../../../util";
+import { useParams } from "../../../utils/useParams";
+import { KeyProviderParams, ProviderType } from "../../routes/KeyProvider";
+import { toKeysTab } from "../../routes/KeysTab";
 
 type KeyProviderFormProps = {
   id?: string;
@@ -43,10 +45,15 @@ export const KeyProviderForm = ({
     serverInfo.componentTypes?.[KEY_PROVIDER_TYPE] ?? [];
 
   const form = useForm<ComponentRepresentation>({
-    shouldUnregister: false,
     mode: "onChange",
   });
-  const { register, control, handleSubmit, errors, reset } = form;
+  const {
+    register,
+    control,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = form;
 
   const save = async (component: ComponentRepresentation) => {
     if (component.config)
@@ -69,7 +76,6 @@ export const KeyProviderForm = ({
           ...component,
           providerId: providerType,
           providerType: KEY_PROVIDER_TYPE,
-          config: { ...component.config, priority: ["0"] },
         });
         addAlert(t("saveProviderSuccess"), AlertVariant.success);
         onClose?.();
@@ -106,13 +112,10 @@ export const KeyProviderForm = ({
           isRequired
         >
           <KeycloakTextInput
-            ref={register}
-            id="id"
-            type="text"
-            name="id"
-            isReadOnly
-            aria-label={t("providerId")}
+            id="providerId"
             data-testid="providerId-input"
+            isReadOnly
+            {...register("id")}
           />
         </FormGroup>
       )}
@@ -136,13 +139,11 @@ export const KeyProviderForm = ({
           control={control}
           rules={{ required: true }}
           defaultValue={providerType}
-          render={({ onChange, value }) => (
+          render={({ field }) => (
             <TextInput
               id="name"
-              type="text"
-              aria-label={t("common:name")}
-              value={value}
-              onChange={onChange}
+              value={field.value}
+              onChange={field.onChange}
               data-testid="name-input"
             />
           )}
@@ -175,11 +176,18 @@ export const KeyProviderForm = ({
 export default function KeyProviderFormPage() {
   const { t } = useTranslation("realm-settings");
   const params = useParams<KeyProviderParams>();
+  const navigate = useNavigate();
+
   return (
     <>
       <ViewHeader titleKey={t("editProvider")} subKey={params.providerType} />
       <PageSection variant="light">
-        <KeyProviderForm {...params} />
+        <KeyProviderForm
+          {...params}
+          onClose={() =>
+            navigate(toKeysTab({ realm: params.realm, tab: "providers" }))
+          }
+        />
       </PageSection>
     </>
   );

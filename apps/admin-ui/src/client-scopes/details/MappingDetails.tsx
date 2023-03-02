@@ -1,9 +1,5 @@
-import { useState } from "react";
-import { useParams, useRouteMatch } from "react-router-dom";
-import { Link } from "react-router-dom-v5-compat";
-import { useNavigate } from "react-router-dom-v5-compat";
-import { useTranslation } from "react-i18next";
-import { FormProvider, useForm } from "react-hook-form";
+import type ProtocolMapperRepresentation from "@keycloak/keycloak-admin-client/lib/defs/protocolMapperRepresentation";
+import type { ProtocolMapperTypeRepresentation } from "@keycloak/keycloak-admin-client/lib/defs/serverInfoRepesentation";
 import {
   ActionGroup,
   AlertVariant,
@@ -14,22 +10,26 @@ import {
   PageSection,
   ValidatedOptions,
 } from "@patternfly/react-core";
-import type ProtocolMapperRepresentation from "@keycloak/keycloak-admin-client/lib/defs/protocolMapperRepresentation";
-import type { ProtocolMapperTypeRepresentation } from "@keycloak/keycloak-admin-client/lib/defs/serverInfoRepesentation";
+import { useState } from "react";
+import { FormProvider, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
+import { Link, useMatch, useNavigate } from "react-router-dom";
 
+import { toClient } from "../../clients/routes/Client";
+import { useAlerts } from "../../components/alert/Alerts";
+import { useConfirmDialog } from "../../components/confirm-dialog/ConfirmDialog";
+import { DynamicComponents } from "../../components/dynamic/DynamicComponents";
+import { FormAccess } from "../../components/form-access/FormAccess";
+import { HelpItem } from "../../components/help-enabler/HelpItem";
+import { KeycloakTextInput } from "../../components/keycloak-text-input/KeycloakTextInput";
 import { ViewHeader } from "../../components/view-header/ViewHeader";
 import { useAdminClient, useFetch } from "../../context/auth/AdminClient";
-import { useConfirmDialog } from "../../components/confirm-dialog/ConfirmDialog";
-import { useAlerts } from "../../components/alert/Alerts";
-import { HelpItem } from "../../components/help-enabler/HelpItem";
+import { useRealm } from "../../context/realm-context/RealmContext";
 import { useServerInfo } from "../../context/server-info/ServerInfoProvider";
 import { convertFormValuesToObject, convertToFormValues } from "../../util";
-import { FormAccess } from "../../components/form-access/FormAccess";
-import { useRealm } from "../../context/realm-context/RealmContext";
-import { MapperParams, MapperRoute } from "../routes/Mapper";
+import { useParams } from "../../utils/useParams";
 import { toClientScope } from "../routes/ClientScope";
-import { DynamicComponents } from "../../components/dynamic/DynamicComponents";
-import { KeycloakTextInput } from "../../components/keycloak-text-input/KeycloakTextInput";
+import { MapperParams, MapperRoute } from "../routes/Mapper";
 
 import "./mapping-details.css";
 
@@ -38,9 +38,14 @@ export default function MappingDetails() {
   const { adminClient } = useAdminClient();
   const { addAlert, addError } = useAlerts();
 
-  const { id, mapperId, type } = useParams<MapperParams>();
+  const { id, mapperId } = useParams<MapperParams>();
   const form = useForm();
-  const { register, setValue, errors, handleSubmit } = form;
+  const {
+    register,
+    setValue,
+    formState: { errors },
+    handleSubmit,
+  } = form;
   const [mapping, setMapping] = useState<ProtocolMapperTypeRepresentation>();
   const [config, setConfig] = useState<{
     protocol?: string;
@@ -53,11 +58,11 @@ export default function MappingDetails() {
   const isGuid = /^[{]?[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}[}]?$/;
   const isUpdating = !!mapperId.match(isGuid);
 
-  const isOnClientScope = !!useRouteMatch(MapperRoute.path);
+  const isOnClientScope = !!useMatch(MapperRoute.path);
   const toDetails = () =>
     isOnClientScope
-      ? toClientScope({ realm, id, type: type!, tab: "mappers" })
-      : `/${realm}/clients/${id}/mappers`;
+      ? toClientScope({ realm, id, tab: "mappers" })
+      : toClient({ realm, clientId: id, tab: "mappers" });
 
   useFetch(
     async () => {
@@ -92,7 +97,7 @@ export default function MappingDetails() {
           data,
         };
       } else {
-        const model = type
+        const model = isOnClientScope
           ? await adminClient.clientScopes.findOne({ id })
           : await adminClient.clients.findOne({ id });
         if (!model) {
@@ -228,14 +233,12 @@ export default function MappingDetails() {
             helperTextInvalid={t("common:required")}
           >
             <KeycloakTextInput
-              ref={register({ required: true })}
-              type="text"
               id="name"
-              name="name"
               isReadOnly={isUpdating}
               validated={
                 errors.name ? ValidatedOptions.error : ValidatedOptions.default
               }
+              {...register("name", { required: true })}
             />
           </FormGroup>
           <FormProvider {...form}>

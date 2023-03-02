@@ -1,6 +1,4 @@
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { Controller, useFormContext } from "react-hook-form";
+import GroupRepresentation from "@keycloak/keycloak-admin-client/lib/defs/groupRepresentation";
 import {
   Button,
   Chip,
@@ -8,24 +6,27 @@ import {
   FormGroup,
   InputGroup,
 } from "@patternfly/react-core";
+import { useState } from "react";
+import { Controller, useFormContext } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 
-import type { ComponentProps } from "./components";
-import { HelpItem } from "../help-enabler/HelpItem";
 import { GroupPickerDialog } from "../group/GroupPickerDialog";
+import { HelpItem } from "../help-enabler/HelpItem";
+import type { ComponentProps } from "./components";
 import { convertToName } from "./DynamicComponents";
 
 export const GroupComponent = ({ name, label, helpText }: ComponentProps) => {
   const { t } = useTranslation("dynamic");
   const [open, setOpen] = useState(false);
+  const [groups, setGroups] = useState<GroupRepresentation[]>();
   const { control } = useFormContext();
 
   return (
     <Controller
       name={convertToName(name!)}
       defaultValue=""
-      typeAheadAriaLabel={t("selectGroup")}
       control={control}
-      render={({ onChange, value }) => (
+      render={({ field }) => (
         <>
           {open && (
             <GroupPickerDialog
@@ -35,11 +36,12 @@ export const GroupComponent = ({ name, label, helpText }: ComponentProps) => {
                 ok: "common:select",
               }}
               onConfirm={(groups) => {
-                onChange(groups?.[0].path);
+                field.onChange(groups?.[0].path);
+                setGroups(groups);
                 setOpen(false);
               }}
               onClose={() => setOpen(false)}
-              filterGroups={value}
+              filterGroups={groups}
             />
           )}
 
@@ -55,8 +57,10 @@ export const GroupComponent = ({ name, label, helpText }: ComponentProps) => {
           >
             <InputGroup>
               <ChipGroup>
-                {value && (
-                  <Chip onClick={() => onChange(undefined)}>{value}</Chip>
+                {field.value && (
+                  <Chip onClick={() => field.onChange(undefined)}>
+                    {field.value}
+                  </Chip>
                 )}
               </ChipGroup>
               <Button

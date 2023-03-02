@@ -1,7 +1,7 @@
 {
   "realmName": "{{name}} realm",
   "welcome": "Welcome to",
-  "introduction": "If you want to leave this page and mange this realm, please click the corresponding menu items in the left navigation bar.",
+  "introduction": "If you want to leave this page and manage this realm, please click the corresponding menu items in the left navigation bar.",
   "serverInfo": "Server info",
   "version": "Version",
   "product": "Product",
@@ -13,11 +13,14 @@
   "infoEnabledFeatures": "Shows enabled preview and experimental features.",
   "infoDisabledFeatures": "Shows all disabled features.",
   "disabledFeatures": "Disabled features",
-  "adminUiVersion": "<0 className=\"pf-u-mr-md\">Admin UI version</0>{{version}}",
   "providerInfo": "Provider info",
   "providers": "Providers",
   "realmInfo": "Realm info",
   "spi": "SPI",
   "showMore": "Show more",
-  "showLess": "Show less"
+  "showLess": "Show less",
+  "memory": "Memory",
+  "totalMemory": "Total memory",
+  "freeMemory": "Free memory",
+  "usedMemory": "Used memory"
 }

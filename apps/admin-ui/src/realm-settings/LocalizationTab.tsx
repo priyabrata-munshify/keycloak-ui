@@ -1,7 +1,4 @@
-import { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { cloneDeep, isEqual, uniqWith } from "lodash-es";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import type RealmRepresentation from "@keycloak/keycloak-admin-client/lib/defs/realmRepresentation";
 import {
   ActionGroup,
   AlertVariant,
@@ -17,39 +14,41 @@ import {
   TextContent,
   ToolbarItem,
 } from "@patternfly/react-core";
-
-import type RealmRepresentation from "@keycloak/keycloak-admin-client/lib/defs/realmRepresentation";
-import { FormAccess } from "../components/form-access/FormAccess";
-import { useServerInfo } from "../context/server-info/ServerInfoProvider";
-import { FormPanel } from "../components/scroll-form/FormPanel";
-import { useAdminClient, useFetch } from "../context/auth/AdminClient";
-import { ListEmptyState } from "../components/list-empty-state/ListEmptyState";
-import { AddMessageBundleModal } from "./AddMessageBundleModal";
-import { useAlerts } from "../components/alert/Alerts";
-import { HelpItem } from "../components/help-enabler/HelpItem";
-import { useRealm } from "../context/realm-context/RealmContext";
-import { DEFAULT_LOCALE } from "../i18n";
+import { SearchIcon } from "@patternfly/react-icons";
 import {
-  EditableTextCell,
-  validateCellEdits,
-  cancelCellEdits,
   applyCellEdits,
-  RowErrors,
-  RowEditType,
+  cancelCellEdits,
+  EditableTextCell,
+  IEditableTextCell,
+  IRow,
   IRowCell,
+  RowEditType,
+  RowErrors,
+  Table,
   TableBody,
   TableHeader,
-  Table,
   TableVariant,
-  IRow,
-  IEditableTextCell,
+  validateCellEdits,
 } from "@patternfly/react-table";
-import type { EditableTextCellProps } from "@patternfly/react-table/dist/esm/components/Table/base";
-import { PaginatingTableToolbar } from "../components/table-toolbar/PaginatingTableToolbar";
-import { SearchIcon } from "@patternfly/react-icons";
-import { useWhoAmI } from "../context/whoami/WhoAmI";
+import { cloneDeep, isEqual, uniqWith } from "lodash-es";
+import { useEffect, useMemo, useState } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import { useTranslation } from "react-i18next";
+
+import { useAlerts } from "../components/alert/Alerts";
+import { FormAccess } from "../components/form-access/FormAccess";
+import { HelpItem } from "../components/help-enabler/HelpItem";
 import type { KeyValueType } from "../components/key-value-form/key-value-convert";
+import { ListEmptyState } from "../components/list-empty-state/ListEmptyState";
+import { FormPanel } from "../components/scroll-form/FormPanel";
+import { PaginatingTableToolbar } from "../components/table-toolbar/PaginatingTableToolbar";
+import { useAdminClient, useFetch } from "../context/auth/AdminClient";
+import { useRealm } from "../context/realm-context/RealmContext";
+import { useServerInfo } from "../context/server-info/ServerInfoProvider";
+import { useWhoAmI } from "../context/whoami/WhoAmI";
+import { DEFAULT_LOCALE } from "../i18n";
 import { convertToFormValues } from "../util";
+import { AddMessageBundleModal } from "./AddMessageBundleModal";
 
 type LocalizationTabProps = {
   save: (realm: RealmRepresentation) => void;
@@ -61,14 +60,20 @@ export enum RowEditAction {
   Save = "save",
   Cancel = "cancel",
   Edit = "edit",
+  Delete = "delete",
 }
 
 export type BundleForm = {
   messageBundle: KeyValueType;
 };
 
-const localeToDisplayName = (locale: string) =>
-  new Intl.DisplayNames([locale], { type: "language" }).of(locale);
+const localeToDisplayName = (locale: string) => {
+  try {
+    return new Intl.DisplayNames([locale], { type: "language" }).of(locale);
+  } catch (error) {
+    return locale;
+  }
+};
 
 export const LocalizationTab = ({ save, realm }: LocalizationTabProps) => {
   const { t } = useTranslation("realm-settings");
@@ -81,37 +86,43 @@ export const LocalizationTab = ({ save, realm }: LocalizationTabProps) => {
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
   const [selectMenuLocale, setSelectMenuLocale] = useState(DEFAULT_LOCALE);
 
-  const { setValue, getValues, control, handleSubmit, formState } = useForm({
-    shouldUnregister: false,
-  });
+  const { setValue, getValues, control, handleSubmit, formState } = useForm();
   const [selectMenuValueSelected, setSelectMenuValueSelected] = useState(false);
   const [messageBundles, setMessageBundles] = useState<[string, string][]>([]);
   const [tableRows, setTableRows] = useState<IRow[]>([]);
 
   const themeTypes = useServerInfo().themes!;
+  const allLocales = useMemo(() => {
+    const locales = Object.values(themeTypes).flatMap((theme) =>
+      theme.flatMap(({ locales }) => (locales ? locales : []))
+    );
+    return Array.from(new Set(locales));
+  }, [themeTypes]);
   const bundleForm = useForm<BundleForm>({ mode: "onChange" });
   const { addAlert, addError } = useAlerts();
   const { realm: currentRealm } = useRealm();
   const { whoAmI } = useWhoAmI();
 
+  const defaultSupportedLocales = realm.supportedLocales?.length
+    ? realm.supportedLocales
+    : [DEFAULT_LOCALE];
+
   const setupForm = () => {
     convertToFormValues(realm, setValue);
-    if (realm.supportedLocales?.length === 0) {
-      setValue("supportedLocales", [DEFAULT_LOCALE]);
-    }
+    setValue("supportedLocales", defaultSupportedLocales);
   };
 
   useEffect(setupForm, []);
 
-  const watchSupportedLocales = useWatch<string[]>({
+  const watchSupportedLocales: string[] = useWatch({
     control,
     name: "supportedLocales",
-    defaultValue: [DEFAULT_LOCALE],
+    defaultValue: defaultSupportedLocales,
   });
   const internationalizationEnabled = useWatch({
     control,
     name: "internationalizationEnabled",
-    defaultValue: false,
+    defaultValue: realm.internationalizationEnabled,
   });
 
   const [tableKey, setTableKey] = useState(0);
@@ -172,16 +183,11 @@ export const LocalizationTab = ({ save, realm }: LocalizationTabProps) => {
           }),
         cells: [
           {
-            title: (
-              value: string,
-              rowIndex: number,
-              cellIndex: number,
-              props
-            ) => (
+            title: (value, rowIndex, cellIndex, props) => (
               <EditableTextCell
-                value={value}
-                rowIndex={rowIndex}
-                cellIndex={cellIndex}
+                value={value!}
+                rowIndex={rowIndex!}
+                cellIndex={cellIndex!}
                 props={props}
                 isDisabled
                 handleTextInputChange={handleTextInputChange}
@@ -193,16 +199,11 @@ export const LocalizationTab = ({ save, realm }: LocalizationTabProps) => {
             },
           },
           {
-            title: (
-              value: string,
-              rowIndex: number,
-              cellIndex: number,
-              props: EditableTextCellProps
-            ) => (
+            title: (value, rowIndex, cellIndex, props) => (
               <EditableTextCell
-                value={value}
-                rowIndex={rowIndex}
-                cellIndex={cellIndex}
+                value={value!}
+                rowIndex={rowIndex!}
+                cellIndex={cellIndex!}
                 props={props}
                 handleTextInputChange={handleTextInputChange}
                 inputAriaLabel={messageBundle[1]}
@@ -326,6 +327,20 @@ export const LocalizationTab = ({ save, realm }: LocalizationTabProps) => {
     }
   };
 
+  const deleteKey = async (key: string) => {
+    try {
+      await adminClient.realms.deleteRealmLocalizationTexts({
+        realm: currentRealm!,
+        selectedLocale: selectMenuLocale,
+        key,
+      });
+      refreshTable();
+      addAlert(t("deleteMessageBundleSuccess"));
+    } catch (error) {
+      addError("realm-settings:deleteMessageBundleError", error);
+    }
+  };
+
   return (
     <>
       {addMessageBundleModalOpen && (
@@ -358,19 +373,19 @@ export const LocalizationTab = ({ save, realm }: LocalizationTabProps) => {
             <Controller
               name="internationalizationEnabled"
               control={control}
-              defaultValue={false}
-              render={({ onChange, value }) => (
+              defaultValue={realm.internationalizationEnabled}
+              render={({ field }) => (
                 <Switch
                   id="kc-l-internationalization"
                   label={t("common:enabled")}
                   labelOff={t("common:disabled")}
-                  isChecked={internationalizationEnabled}
+                  isChecked={field.value}
                   data-testid={
-                    value
+                    field.value
                       ? "internationalization-enabled"
                       : "internationalization-disabled"
                   }
-                  onChange={onChange}
+                  onChange={field.onChange}
                   aria-label={t("internationalization")}
                 />
               )}
@@ -385,8 +400,8 @@ export const LocalizationTab = ({ save, realm }: LocalizationTabProps) => {
                 <Controller
                   name="supportedLocales"
                   control={control}
-                  defaultValue={[DEFAULT_LOCALE]}
-                  render={({ onChange, value }) => (
+                  defaultValue={defaultSupportedLocales}
+                  render={({ field }) => (
                     <Select
                       toggleId="kc-l-supported-locales"
                       onToggle={(open) => {
@@ -394,26 +409,28 @@ export const LocalizationTab = ({ save, realm }: LocalizationTabProps) => {
                       }}
                       onSelect={(_, v) => {
                         const option = v as string;
-                        if (value.includes(option)) {
-                          onChange(
-                            value.filter((item: string) => item !== option)
+                        if (field.value.includes(option)) {
+                          field.onChange(
+                            field.value.filter(
+                              (item: string) => item !== option
+                            )
                           );
                         } else {
-                          onChange([...value, option]);
+                          field.onChange([...field.value, option]);
                         }
                       }}
                       onClear={() => {
-                        onChange([]);
+                        field.onChange([]);
                       }}
-                      selections={value}
+                      selections={field.value}
                       variant={SelectVariant.typeaheadMulti}
                       aria-label={t("supportedLocales")}
                       isOpen={supportedLocalesOpen}
                       placeholderText={t("selectLocales")}
                     >
-                      {themeTypes.login![0].locales.map((locale) => (
+                      {allLocales.map((locale) => (
                         <SelectOption
-                          selected={value.includes(locale)}
+                          selected={field.value.includes(locale)}
                           key={locale}
                           value={locale}
                         >
@@ -432,17 +449,17 @@ export const LocalizationTab = ({ save, realm }: LocalizationTabProps) => {
                   name="defaultLocale"
                   control={control}
                   defaultValue={DEFAULT_LOCALE}
-                  render={({ onChange, value }) => (
+                  render={({ field }) => (
                     <Select
                       toggleId="kc-default-locale"
                       onToggle={() => setDefaultLocaleOpen(!defaultLocaleOpen)}
                       onSelect={(_, value) => {
-                        onChange(value as string);
+                        field.onChange(value as string);
                         setDefaultLocaleOpen(false);
                       }}
                       selections={
-                        value
-                          ? localeToDisplayName(value)
+                        field.value
+                          ? localeToDisplayName(field.value)
                           : realm.defaultLocale !== ""
                           ? localeToDisplayName(
                               realm.defaultLocale || DEFAULT_LOCALE
@@ -455,16 +472,14 @@ export const LocalizationTab = ({ save, realm }: LocalizationTabProps) => {
                       placeholderText={t("placeholderText")}
                       data-testid="select-default-locale"
                     >
-                      {watchSupportedLocales.map(
-                        (locale: string, idx: number) => (
-                          <SelectOption
-                            key={`default-locale-${idx}`}
-                            value={locale}
-                          >
-                            {localeToDisplayName(locale)}
-                          </SelectOption>
-                        )
-                      )}
+                      {watchSupportedLocales.map((locale, idx) => (
+                        <SelectOption
+                          key={`default-locale-${idx}`}
+                          value={locale}
+                        >
+                          {localeToDisplayName(locale)}
+                        </SelectOption>
+                      ))}
                     </Select>
                   )}
                 />
@@ -572,6 +587,15 @@ export const LocalizationTab = ({ save, realm }: LocalizationTabProps) => {
                   onRowEdit={(_, type, _b, rowIndex, validation) =>
                     updateEditableRows(type, rowIndex, validation)
                   }
+                  actions={[
+                    {
+                      title: t("common:delete"),
+                      onClick: (_, row) =>
+                        deleteKey(
+                          (tableRows[row].cells?.[0] as IRowCell).props.value
+                        ),
+                    },
+                  ]}
                 >
                   <TableHeader />
                   <TableBody />

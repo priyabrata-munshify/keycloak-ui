@@ -1,10 +1,11 @@
 import LoginPage from "../support/pages/LoginPage";
-import Masthead from "../support/pages/admin_console/Masthead";
-import ListingPage from "../support/pages/admin_console/ListingPage";
-import SidebarPage from "../support/pages/admin_console/SidebarPage";
+import Masthead from "../support/pages/admin-ui/Masthead";
+import ListingPage from "../support/pages/admin-ui/ListingPage";
+import SidebarPage from "../support/pages/admin-ui/SidebarPage";
 import ModalUtils from "../support/util/ModalUtils";
 import adminClient from "../support/util/AdminClient";
 import { keycloakBefore } from "../support/util/keycloak_hooks";
+import SettingsTab from "../support/pages/admin-ui/manage/clients/client_details/tabs/SettingsTab";
 
 const loginPage = new LoginPage();
 const masthead = new Masthead();
@@ -22,8 +23,6 @@ describe("Clients SAML tests", () => {
         clientId: samlClientName,
         publicClient: false,
       });
-      keycloakBefore();
-      loginPage.logIn();
     });
 
     after(() => {
@@ -31,6 +30,8 @@ describe("Clients SAML tests", () => {
     });
 
     beforeEach(() => {
+      loginPage.logIn();
+      keycloakBefore();
       sidebarPage.goToClients();
       listingPage.searchItem(samlClientName).goToItemDetails(samlClientName);
     });
@@ -62,8 +63,6 @@ describe("Clients SAML tests", () => {
         clientId,
         protocol: "saml",
       });
-      keycloakBefore();
-      loginPage.logIn();
     });
 
     after(() => {
@@ -71,6 +70,8 @@ describe("Clients SAML tests", () => {
     });
 
     beforeEach(() => {
+      loginPage.logIn();
+      keycloakBefore();
       sidebarPage.goToClients();
       listingPage.searchItem(clientId).goToItemDetails(clientId);
       cy.findByTestId("keysTab").click();
@@ -110,6 +111,85 @@ describe("Clients SAML tests", () => {
 
       modalUtils.confirmModal();
       cy.findAllByTestId("certificate").should("have.length", 1);
+    });
+  });
+
+  describe("SAML settings tab", () => {
+    const clientId = "saml-settings";
+    const settingsTab = new SettingsTab();
+
+    before(() => {
+      adminClient.createClient({
+        clientId,
+        protocol: "saml",
+      });
+    });
+
+    after(() => {
+      adminClient.deleteClient(clientId);
+    });
+
+    beforeEach(() => {
+      loginPage.logIn();
+      keycloakBefore();
+      sidebarPage.goToClients();
+      listingPage.searchItem(clientId).goToItemDetails(clientId);
+    });
+
+    it("should check SAML capabilities", () => {
+      cy.get(".pf-c-jump-links__list").contains("SAML capabilities").click();
+
+      settingsTab.assertNameIdFormatDropdown();
+      settingsTab.assertSAMLCapabilitiesSwitches();
+    });
+
+    it("should check signature and encryption", () => {
+      cy.get(".pf-c-jump-links__list")
+        .contains("Signature and Encryption")
+        .click();
+
+      settingsTab.assertSignatureAlgorithmDropdown();
+      settingsTab.assertSignatureKeyNameDropdown();
+      settingsTab.assertCanonicalizationDropdown();
+
+      settingsTab.assertSignatureEncryptionSwitches();
+    });
+
+    it("should check access settings", () => {
+      cy.get(".pf-c-jump-links__list").contains("Access settings").click();
+
+      const validUrl =
+        "http://localhost:8180/realms/master/protocol/" +
+        clientId +
+        "/clients/";
+      const rootUrlError =
+        "Client could not be updated: Root URL is not a valid URL";
+      const homeUrlError =
+        "Client could not be updated: Base URL is not a valid URL";
+
+      cy.get("#kc-root-url").type("Invalid URL");
+      settingsTab.clickSaveBtn();
+      masthead.checkNotificationMessage(rootUrlError);
+      cy.get("#kc-root-url").clear();
+
+      cy.get("#kc-home-url").type("Invalid URL");
+      settingsTab.clickSaveBtn();
+      masthead.checkNotificationMessage(homeUrlError);
+      cy.get("#kc-home-url").clear();
+
+      cy.get("#kc-root-url").type(validUrl);
+      cy.get("#kc-home-url").type(validUrl);
+      settingsTab.clickSaveBtn();
+      masthead.checkNotificationMessage("Client successfully updated");
+
+      settingsTab.assertAccessSettings();
+    });
+
+    it("should check login settings", () => {
+      cy.get(".pf-c-jump-links__list").contains("Login settings").click();
+
+      settingsTab.assertLoginThemeDropdown();
+      settingsTab.assertLoginSettings();
     });
   });
 });

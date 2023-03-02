@@ -1,7 +1,7 @@
-import SidebarPage from "../support/pages/admin_console/SidebarPage";
+import SidebarPage from "../support/pages/admin-ui/SidebarPage";
 import LoginPage from "../support/pages/LoginPage";
-import RealmSettingsPage from "../support/pages/admin_console/manage/realm_settings/RealmSettingsPage";
-import Masthead from "../support/pages/admin_console/Masthead";
+import RealmSettingsPage from "../support/pages/admin-ui/manage/realm_settings/RealmSettingsPage";
+import Masthead from "../support/pages/admin-ui/Masthead";
 import { keycloakBefore } from "../support/util/keycloak_hooks";
 import adminClient from "../support/util/AdminClient";
 
@@ -11,11 +11,11 @@ const masthead = new Masthead();
 const realmSettingsPage = new RealmSettingsPage();
 
 describe("Realm settings general tab tests", () => {
-  const realmName = "Realm_" + (Math.random() + 1).toString(36).substring(7);
+  const realmName = "Realm_" + crypto.randomUUID();
 
   beforeEach(() => {
-    keycloakBefore();
     loginPage.logIn();
+    keycloakBefore();
     sidebarPage.goToRealm(realmName);
   });
 

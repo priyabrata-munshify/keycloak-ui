@@ -13,11 +13,10 @@ import type ClientRepresentation from "@keycloak/keycloak-admin-client/lib/defs/
 import type { ClientQuery } from "@keycloak/keycloak-admin-client/lib/resources/clients";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useHistory } from "react-router-dom";
-import { Link } from "react-router-dom-v5-compat";
+import { Link } from "react-router-dom";
 import { useAlerts } from "../components/alert/Alerts";
 import { useConfirmDialog } from "../components/confirm-dialog/ConfirmDialog";
-import { formattedLinkTableCell } from "../components/external-link/FormattedLink";
+import { FormattedLink } from "../components/external-link/FormattedLink";
 import {
   Action,
   KeycloakDataTable,
@@ -35,10 +34,52 @@ import { isRealmClient, getProtocolName } from "./utils";
 import helpUrls from "../help-urls";
 import { useAccess } from "../context/access/Access";
 import {
-  routableTab,
   RoutableTabs,
+  useRoutableTab,
 } from "../components/routable-tabs/RoutableTabs";
 import { ClientsTab, toClients } from "./routes/Clients";
+import { ClientRegistration } from "./registration/ClientRegistration";
+
+const ClientDetailLink = (client: ClientRepresentation) => {
+  const { t } = useTranslation("clients");
+  const { realm } = useRealm();
+  return (
+    <Link
+      key={client.id}
+      to={toClient({ realm, clientId: client.id!, tab: "settings" })}
+    >
+      {client.clientId}
+      {!client.enabled && (
+        <Badge key={`${client.id}-disabled`} isRead className="pf-u-ml-sm">
+          {t("common:disabled")}
+        </Badge>
+      )}
+    </Link>
+  );
+};
+
+const ClientName = (client: ClientRepresentation) => (
+  <TableText wrapModifier="truncate">
+    {emptyFormatter()(client.name) as string}
+  </TableText>
+);
+
+const ClientDescription = (client: ClientRepresentation) => (
+  <TableText wrapModifier="truncate">
+    {emptyFormatter()(client.description) as string}
+  </TableText>
+);
+
+const ClientHomeLink = (client: ClientRepresentation) => {
+  const { adminClient } = useAdminClient();
+  const href = convertClientToUrl(client, adminClient.baseUrl);
+
+  if (!href) {
+    return "—";
+  }
+
+  return <FormattedLink href={href} />;
+};
 
 export default function ClientsSection() {
   const { t } = useTranslation("clients");
@@ -46,7 +87,6 @@ export default function ClientsSection() {
 
   const { adminClient } = useAdminClient();
   const { realm } = useRealm();
-  const history = useHistory();
 
   const [key, setKey] = useState(0);
   const refresh = () => setKey(new Date().getTime());
@@ -67,6 +107,12 @@ export default function ClientsSection() {
     return await adminClient.clients.find({ ...params });
   };
 
+  const useTab = (tab: ClientsTab) => useRoutableTab(toClients({ realm, tab }));
+
+  const listTab = useTab("list");
+  const initialAccessTokenTab = useTab("initial-access-token");
+  const clientRegistrationTab = useTab("client-registration");
+
   const [toggleDeleteDialog, DeleteConfirm] = useConfirmDialog({
     titleKey: t("clientDelete", { clientId: selectedClient?.clientId }),
     messageKey: "clients:clientDeleteConfirm",
@@ -84,26 +130,6 @@ export default function ClientsSection() {
       }
     },
   });
-
-  const ClientDetailLink = (client: ClientRepresentation) => (
-    <Link
-      key={client.id}
-      to={toClient({ realm, clientId: client.id!, tab: "settings" })}
-    >
-      {client.clientId}
-      {!client.enabled && (
-        <Badge key={`${client.id}-disabled`} isRead className="pf-u-ml-sm">
-          {t("common:disabled")}
-        </Badge>
-      )}
-    </Link>
-  );
-
-  const ClientDescription = (client: ClientRepresentation) => (
-    <TableText wrapModifier="truncate">
-      {emptyFormatter()(client.description)}
-    </TableText>
-  );
 
   const ToolbarItems = () => {
     if (!isManager) return <span />;
@@ -134,12 +160,6 @@ export default function ClientsSection() {
     );
   };
 
-  const route = (tab: ClientsTab) =>
-    routableTab({
-      to: toClients({ realm, tab }),
-      history,
-    });
-
   return (
     <>
       <ViewHeader
@@ -160,7 +180,7 @@ export default function ClientsSection() {
           <Tab
             data-testid="list"
             title={<TabTitleText>{t("clientsList")}</TabTitleText>}
-            {...route("list")}
+            {...listTab}
           >
             <DeleteConfirm />
             <KeycloakDataTable
@@ -200,26 +220,33 @@ export default function ClientsSection() {
                 {
                   name: "clientId",
                   displayKey: "common:clientId",
+                  transforms: [cellWidth(20)],
                   cellRenderer: ClientDetailLink,
+                },
+                {
+                  name: "clientName",
+                  displayKey: "common:clientName",
+                  transforms: [cellWidth(20)],
+                  cellRenderer: ClientName,
                 },
                 {
                   name: "protocol",
                   displayKey: "common:type",
+                  transforms: [cellWidth(10)],
                   cellRenderer: (client) =>
                     getProtocolName(t, client.protocol ?? "openid-connect"),
                 },
                 {
                   name: "description",
                   displayKey: "common:description",
-                  transforms: [cellWidth(20)],
+                  transforms: [cellWidth(30)],
                   cellRenderer: ClientDescription,
                 },
                 {
                   name: "baseUrl",
                   displayKey: "clients:homeURL",
-                  cellFormatters: [formattedLinkTableCell(), emptyFormatter()],
-                  cellRenderer: (c) =>
-                    convertClientToUrl(c, adminClient.baseUrl),
+                  transforms: [cellWidth(20)],
+                  cellRenderer: ClientHomeLink,
                 },
               ]}
             />
@@ -227,9 +254,16 @@ export default function ClientsSection() {
           <Tab
             data-testid="initialAccessToken"
             title={<TabTitleText>{t("initialAccessToken")}</TabTitleText>}
-            {...route("initial-access-token")}
+            {...initialAccessTokenTab}
           >
             <InitialAccessTokenList />
+          </Tab>
+          <Tab
+            data-testid="registration"
+            title={<TabTitleText>{t("clientRegistration")}</TabTitleText>}
+            {...clientRegistrationTab}
+          >
+            <ClientRegistration />
           </Tab>
         </RoutableTabs>
       </PageSection>

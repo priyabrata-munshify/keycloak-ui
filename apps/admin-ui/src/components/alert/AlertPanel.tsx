@@ -4,16 +4,20 @@ import {
   AlertActionCloseButton,
   AlertVariant,
 } from "@patternfly/react-core";
-import type { AlertType } from "./Alerts";
+import type { AlertEntry } from "./Alerts";
 
 type AlertPanelProps = {
-  alerts: AlertType[];
-  onCloseAlert: (id: number) => void;
+  alerts: AlertEntry[];
+  onCloseAlert: (id: string) => void;
 };
 
 export function AlertPanel({ alerts, onCloseAlert }: AlertPanelProps) {
   return (
-    <AlertGroup isToast>
+    <AlertGroup
+      data-testid="global-alerts"
+      isToast
+      style={{ whiteSpace: "pre-wrap" }}
+    >
       {alerts.map(({ id, variant, message, description }) => (
         <Alert
           key={id}
@@ -27,8 +31,6 @@ export function AlertPanel({ alerts, onCloseAlert }: AlertPanelProps) {
               onClose={() => onCloseAlert(id)}
             />
           }
-          timeout
-          onTimeout={() => onCloseAlert(id)}
         >
           {description && <p>{description}</p>}
         </Alert>

@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { FormProvider, useForm } from "react-hook-form";
+import type AuthenticatorConfigInfoRepresentation from "@keycloak/keycloak-admin-client/lib/defs/authenticatorConfigInfoRepresentation";
+import type AuthenticatorConfigRepresentation from "@keycloak/keycloak-admin-client/lib/defs/authenticatorConfigRepresentation";
 import {
   ActionGroup,
   AlertVariant,
@@ -14,16 +13,17 @@ import {
   ValidatedOptions,
 } from "@patternfly/react-core";
 import { CogIcon, TrashIcon } from "@patternfly/react-icons";
+import { useEffect, useState } from "react";
+import { FormProvider, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 
-import type AuthenticatorConfigRepresentation from "@keycloak/keycloak-admin-client/lib/defs/authenticatorConfigRepresentation";
-import type AuthenticatorConfigInfoRepresentation from "@keycloak/keycloak-admin-client/lib/defs/authenticatorConfigInfoRepresentation";
-import type { ExpandableExecution } from "../execution-model";
-import { useAdminClient, useFetch } from "../../context/auth/AdminClient";
 import { useAlerts } from "../../components/alert/Alerts";
-import { HelpItem } from "../../components/help-enabler/HelpItem";
 import { DynamicComponents } from "../../components/dynamic/DynamicComponents";
+import { HelpItem } from "../../components/help-enabler/HelpItem";
 import { KeycloakTextInput } from "../../components/keycloak-text-input/KeycloakTextInput";
-import { convertToFormValues } from "../../util";
+import { useAdminClient, useFetch } from "../../context/auth/AdminClient";
+import { convertFormValuesToObject, convertToFormValues } from "../../util";
+import type { ExpandableExecution } from "../execution-model";
 
 type ExecutionConfigModalForm = {
   alias: string;
@@ -55,7 +55,7 @@ export const ExecutionConfigModal = ({
   } = form;
 
   const setupForm = (config?: AuthenticatorConfigRepresentation) => {
-    convertToFormValues(config, setValue);
+    convertToFormValues(config || {}, setValue);
   };
 
   useFetch(
@@ -83,15 +83,17 @@ export const ExecutionConfigModal = ({
     if (config) setupForm(config);
   }, [config]);
 
-  const save = async (changedConfig: ExecutionConfigModalForm) => {
+  const save = async (saved: ExecutionConfigModalForm) => {
+    const changedConfig = convertFormValuesToObject(saved);
     try {
       if (config) {
         const newConfig = {
-          ...config,
+          id: config.id,
+          alias: config.alias,
           config: changedConfig.config,
         };
         await adminClient.authenticationManagement.updateConfig(newConfig);
-        setConfig({ ...newConfig.config });
+        setConfig({ ...newConfig });
       } else {
         const newConfig = {
           id: execution.id!,
@@ -146,16 +148,14 @@ export const ExecutionConfigModal = ({
             >
               <KeycloakTextInput
                 isReadOnly={!!config}
-                type="text"
                 id="alias"
-                name="alias"
                 data-testid="alias"
-                ref={register({ required: true })}
                 validated={
                   errors.alias
                     ? ValidatedOptions.error
                     : ValidatedOptions.default
                 }
+                {...register("alias", { required: true })}
               />
             </FormGroup>
             <FormProvider {...form}>

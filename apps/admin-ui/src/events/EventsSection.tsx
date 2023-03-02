@@ -1,3 +1,6 @@
+import type EventRepresentation from "@keycloak/keycloak-admin-client/lib/defs/eventRepresentation";
+import type EventType from "@keycloak/keycloak-admin-client/lib/defs/eventTypes";
+import type { RealmEventsConfigRepresentation } from "@keycloak/keycloak-admin-client/lib/defs/realmEventsConfigRepresentation";
 import {
   ActionGroup,
   Button,
@@ -24,30 +27,27 @@ import {
 } from "@patternfly/react-core";
 import { CheckCircleIcon, WarningTriangleIcon } from "@patternfly/react-icons";
 import { cellWidth, expandable } from "@patternfly/react-table";
-import type EventRepresentation from "@keycloak/keycloak-admin-client/lib/defs/eventRepresentation";
-import type EventType from "@keycloak/keycloak-admin-client/lib/defs/eventTypes";
-import type { RealmEventsConfigRepresentation } from "@keycloak/keycloak-admin-client/lib/defs/realmEventsConfigRepresentation";
 import { pickBy } from "lodash-es";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Trans, useTranslation } from "react-i18next";
-import { useHistory } from "react-router-dom";
-import { Link } from "react-router-dom-v5-compat";
+import { Link } from "react-router-dom";
+
+import { KeycloakTextInput } from "../components/keycloak-text-input/KeycloakTextInput";
 import { ListEmptyState } from "../components/list-empty-state/ListEmptyState";
+import {
+  RoutableTabs,
+  useRoutableTab,
+} from "../components/routable-tabs/RoutableTabs";
 import { KeycloakDataTable } from "../components/table-toolbar/KeycloakDataTable";
 import { ViewHeader } from "../components/view-header/ViewHeader";
-import { KeycloakTextInput } from "../components/keycloak-text-input/KeycloakTextInput";
 import { useAdminClient, useFetch } from "../context/auth/AdminClient";
 import { useRealm } from "../context/realm-context/RealmContext";
+import helpUrls from "../help-urls";
 import { toRealmSettings } from "../realm-settings/routes/RealmSettings";
 import { toUser } from "../user/routes/User";
 import useFormatDate, { FORMAT_DATE_AND_TIME } from "../utils/useFormatDate";
 import { AdminEvents } from "./AdminEvents";
-import helpUrls from "../help-urls";
-import {
-  routableTab,
-  RoutableTabs,
-} from "../components/routable-tabs/RoutableTabs";
 import { EventsTab, toEvents } from "./routes/Events";
 
 import "./events.css";
@@ -83,12 +83,13 @@ const StatusRow = (event: EventRepresentation) =>
 
 const DetailCell = (event: EventRepresentation) => (
   <DescriptionList isHorizontal className="keycloak_eventsection_details">
-    {Object.entries(event.details!).map(([key, value]) => (
-      <DescriptionListGroup key={key}>
-        <DescriptionListTerm>{key}</DescriptionListTerm>
-        <DescriptionListDescription>{value}</DescriptionListDescription>
-      </DescriptionListGroup>
-    ))}
+    {event.details &&
+      Object.entries(event.details).map(([key, value]) => (
+        <DescriptionListGroup key={key}>
+          <DescriptionListTerm>{key}</DescriptionListTerm>
+          <DescriptionListDescription>{value}</DescriptionListDescription>
+        </DescriptionListGroup>
+      ))}
   </DescriptionList>
 );
 
@@ -119,8 +120,8 @@ export default function EventsSection() {
     reset,
     formState: { isDirty },
     control,
+    handleSubmit,
   } = useForm<UserEventSearchForm>({
-    shouldUnregister: false,
     mode: "onChange",
     defaultValues,
   });
@@ -141,7 +142,12 @@ export default function EventsSection() {
     });
   }
 
-  function submitSearch() {
+  const useTab = (tab: EventsTab) => useRoutableTab(toEvents({ realm, tab }));
+
+  const userEventsTab = useTab("user-events");
+  const adminEventsTab = useTab("admin-events");
+
+  function onSubmit() {
     setSearchDropdownOpen(false);
     commitFilters();
   }
@@ -228,9 +234,10 @@ export default function EventsSection() {
             isOpen={searchDropdownOpen}
           >
             <Form
-              isHorizontal
-              className="keycloak__events_search__form"
               data-testid="searchForm"
+              className="keycloak__events_search__form"
+              onSubmit={handleSubmit(onSubmit)}
+              isHorizontal
             >
               <FormGroup
                 label={t("userId")}
@@ -238,11 +245,9 @@ export default function EventsSection() {
                 className="keycloak__events_search__form_label"
               >
                 <KeycloakTextInput
-                  ref={register()}
-                  type="text"
                   id="kc-userId"
-                  name="user"
                   data-testid="userId-searchField"
+                  {...register("user")}
                 />
               </FormGroup>
               <FormGroup
@@ -253,13 +258,7 @@ export default function EventsSection() {
                 <Controller
                   name="type"
                   control={control}
-                  render={({
-                    onChange,
-                    value,
-                  }: {
-                    onChange: (newValue: EventType[]) => void;
-                    value: EventType[];
-                  }) => (
+                  render={({ field }) => (
                     <Select
                       className="keycloak__events_search__type_select"
                       name="eventType"
@@ -272,29 +271,31 @@ export default function EventsSection() {
                       variant={SelectVariant.typeaheadMulti}
                       typeAheadAriaLabel="Select"
                       onToggle={(isOpen) => setSelectOpen(isOpen)}
-                      selections={value}
+                      selections={field.value}
                       onSelect={(_, selectedValue) => {
                         const option = selectedValue.toString() as EventType;
-                        const changedValue = value.includes(option)
-                          ? value.filter((item) => item !== option)
-                          : [...value, option];
+                        const changedValue = field.value.includes(option)
+                          ? field.value.filter((item) => item !== option)
+                          : [...field.value, option];
 
-                        onChange(changedValue);
+                        field.onChange(changedValue);
                       }}
                       onClear={(event) => {
                         event.stopPropagation();
-                        onChange([]);
+                        field.onChange([]);
                       }}
                       isOpen={selectOpen}
                       aria-labelledby={"eventType"}
                       chipGroupComponent={
                         <ChipGroup>
-                          {value.map((chip) => (
+                          {field.value.map((chip) => (
                             <Chip
                               key={chip}
                               onClick={(event) => {
                                 event.stopPropagation();
-                                onChange(value.filter((val) => val !== chip));
+                                field.onChange(
+                                  field.value.filter((val) => val !== chip)
+                                );
                               }}
                             >
                               {chip}
@@ -316,11 +317,9 @@ export default function EventsSection() {
                 className="keycloak__events_search__form_label"
               >
                 <KeycloakTextInput
-                  ref={register()}
-                  type="text"
                   id="kc-client"
-                  name="client"
                   data-testid="client-searchField"
+                  {...register("client")}
                 />
               </FormGroup>
               <FormGroup
@@ -331,11 +330,11 @@ export default function EventsSection() {
                 <Controller
                   name="dateFrom"
                   control={control}
-                  render={({ onChange, value }) => (
+                  render={({ field }) => (
                     <DatePicker
                       className="pf-u-w-100"
-                      value={value}
-                      onChange={(value) => onChange(value)}
+                      value={field.value}
+                      onChange={(_, value) => field.onChange(value)}
                       inputProps={{ id: "kc-dateFrom" }}
                     />
                   )}
@@ -349,11 +348,11 @@ export default function EventsSection() {
                 <Controller
                   name="dateTo"
                   control={control}
-                  render={({ onChange, value }) => (
+                  render={({ field }) => (
                     <DatePicker
                       className="pf-u-w-100"
-                      value={value}
-                      onChange={(value) => onChange(value)}
+                      value={field.value}
+                      onChange={(_, value) => field.onChange(value)}
                       inputProps={{ id: "kc-dateTo" }}
                     />
                   )}
@@ -361,9 +360,9 @@ export default function EventsSection() {
               </FormGroup>
               <ActionGroup>
                 <Button
-                  variant={"primary"}
-                  onClick={submitSearch}
                   data-testid="search-events-btn"
+                  variant="primary"
+                  type="submit"
                   isDisabled={!isDirty}
                 >
                   {t("searchUserEventsBtn")}
@@ -425,13 +424,6 @@ export default function EventsSection() {
     );
   };
 
-  const history = useHistory();
-  const route = (tab: EventsTab) =>
-    routableTab({
-      to: toEvents({ realm, tab }),
-      history,
-    });
-
   return (
     <>
       <ViewHeader
@@ -456,7 +448,7 @@ export default function EventsSection() {
         >
           <Tab
             title={<TabTitleText>{t("userEvents")}</TabTitleText>}
-            {...route("user-events")}
+            {...userEventsTab}
           >
             <div className="keycloak__events_table">
               <KeycloakDataTable
@@ -513,7 +505,7 @@ export default function EventsSection() {
           <Tab
             title={<TabTitleText>{t("adminEvents")}</TabTitleText>}
             data-testid="admin-events-tab"
-            {...route("admin-events")}
+            {...adminEventsTab}
           >
             <AdminEvents />
           </Tab>

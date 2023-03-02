@@ -1,40 +1,37 @@
-import { useState, MouseEvent as ReactMouseEvent } from "react";
-import {
-  Drawer,
-  DrawerActions,
-  DrawerCloseButton,
-  DrawerContent,
-  DrawerContentBody,
-  DrawerHead,
-  DrawerPanelContent,
-} from "@patternfly/react-core";
-import ReactFlow, {
-  Node,
-  Edge,
-  Elements,
-  Position,
-  removeElements,
-  MiniMap,
-  Controls,
-  Background,
-  isNode,
-} from "react-flow-renderer";
-
 import type AuthenticationExecutionInfoRepresentation from "@keycloak/keycloak-admin-client/lib/defs/authenticationExecutionInfoRepresentation";
-import type { ExecutionList, ExpandableExecution } from "../execution-model";
-import { EndSubFlowNode, StartSubFlowNode } from "./diagram/SubFlowNode";
-import { ConditionalNode } from "./diagram/ConditionalNode";
-import { ButtonEdge } from "./diagram/ButtonEdge";
-import { getLayoutedElements } from "./diagram/auto-layout";
-import { providerConditionFilter } from "../FlowDetails";
+import { MouseEvent as ReactMouseEvent, useMemo, useState } from "react";
+import {
+  Background,
+  Controls,
+  Edge,
+  EdgeTypes,
+  MiniMap,
+  Node,
+  NodeMouseHandler,
+  NodeTypes,
+  Position,
+  ReactFlow,
+  ReactFlowInstance,
+  useEdgesState,
+  useNodesState,
+} from "reactflow";
+import { useUpdateEffect } from "../../utils/useUpdateEffect";
 
+import type { ExecutionList, ExpandableExecution } from "../execution-model";
+import { providerConditionFilter } from "../FlowDetails";
+import { getLayoutedEdges, getLayoutedNodes } from "./diagram/auto-layout";
+import { ButtonEdge, ButtonEdges } from "./diagram/ButtonEdge";
+import { ConditionalNode } from "./diagram/ConditionalNode";
+import { EndSubFlowNode, StartSubFlowNode } from "./diagram/SubFlowNode";
+
+import "reactflow/dist/style.css";
 import "./flow-diagram.css";
 
 type FlowDiagramProps = {
   executionList: ExecutionList;
 };
 
-const createEdge = (fromNode: string, toNode: string) => ({
+const createEdge = (fromNode: string, toNode: string): Edge => ({
   id: `edge-${fromNode}-to-${toNode}`,
   type: "buttonEdge",
   source: fromNode,
@@ -50,7 +47,7 @@ const createEdge = (fromNode: string, toNode: string) => ({
   },
 });
 
-const createNode = (ex: ExpandableExecution) => {
+const createNode = (ex: ExpandableExecution): Node => {
   let nodeType: string | undefined = undefined;
   if (ex.executionList) {
     nodeType = "startSubFlow";
@@ -68,50 +65,50 @@ const createNode = (ex: ExpandableExecution) => {
   };
 };
 
-const renderParallelNodes = (
+const renderParallelNodes = (execution: ExpandableExecution): Node[] => [
+  createNode(execution),
+];
+
+const renderParallelEdges = (
   start: AuthenticationExecutionInfoRepresentation,
   execution: ExpandableExecution,
   end: AuthenticationExecutionInfoRepresentation
-) => {
-  const elements: Elements = [];
-  elements.push(createNode(execution));
-  elements.push(createEdge(start.id!, execution.id!));
-  elements.push(createEdge(execution.id!, end.id!));
-  return elements;
-};
+): Edge[] => [
+  createEdge(start.id!, execution.id!),
+  createEdge(execution.id!, end.id!),
+];
 
-const renderSequentialNodes = (
+const renderSequentialNodes = (execution: ExpandableExecution): Node[] => [
+  createNode(execution),
+];
+
+const renderSequentialEdges = (
   start: AuthenticationExecutionInfoRepresentation,
   execution: ExpandableExecution,
   end: AuthenticationExecutionInfoRepresentation,
   prefExecution: ExpandableExecution,
   isFirst: boolean,
   isLast: boolean
-) => {
-  const elements: Elements = [];
-  elements.push(createNode(execution));
+): Edge[] => {
+  const edges: Edge[] = [];
+
   if (isFirst) {
-    elements.push(createEdge(start.id!, execution.id!));
+    edges.push(createEdge(start.id!, execution.id!));
   } else {
-    elements.push(createEdge(prefExecution.id!, execution.id!));
+    edges.push(createEdge(prefExecution.id!, execution.id!));
   }
 
   if (isLast) {
-    elements.push(createEdge(execution.id!, end.id!));
+    edges.push(createEdge(execution.id!, end.id!));
   }
 
-  return elements;
+  return edges;
 };
 
-const renderSubFlow = (
-  execution: ExpandableExecution,
-  start: AuthenticationExecutionInfoRepresentation,
-  end: AuthenticationExecutionInfoRepresentation,
-  prefExecution?: ExpandableExecution
-) => {
-  const elements: Elements = [];
+const renderSubFlowNodes = (execution: ExpandableExecution): Node[] => {
+  const nodes: Node[] = [];
 
-  elements.push({
+  nodes.push({
     id: execution.id!,
     type: "startSubFlow",
     sourcePosition: Position.Right,
@@ -119,8 +116,10 @@ const renderSubFlow = (
     data: { label: execution.displayName! },
     position: { x: 0, y: 0 },
   });
+
   const endSubFlowId = `flow-end-${execution.id}`;
-  elements.push({
+
+  nodes.push({
     id: endSubFlowId,
     type: "endSubFlow",
     sourcePosition: Position.Right,
@@ -128,7 +127,21 @@ const renderSubFlow = (
     data: { label: execution.displayName! },
     position: { x: 0, y: 0 },
   });
-  elements.push(
+
+  return nodes.concat(renderFlowNodes(execution.executionList || []));
+};
+
+const renderSubFlowEdges = (
+  execution: ExpandableExecution,
+  start: AuthenticationExecutionInfoRepresentation,
+  end: AuthenticationExecutionInfoRepresentation,
+  prefExecution?: ExpandableExecution
+): Edge[] => {
+  const edges: Edge[] = [];
+
+  const endSubFlowId = `flow-end-${execution.id}`;
+
+  edges.push(
     createEdge(
       prefExecution && prefExecution.requirement !== "ALTERNATIVE"
         ? prefExecution.id!
@@ -136,38 +149,60 @@ const renderSubFlow = (
       execution.id!
     )
   );
-  elements.push(createEdge(endSubFlowId, end.id!));
+  edges.push(createEdge(endSubFlowId, end.id!));
 
-  return elements.concat(
-    renderFlow(execution, execution.executionList || [], {
+  return edges.concat(
+    renderFlowEdges(execution, execution.executionList || [], {
       ...execution,
       id: endSubFlowId,
     })
   );
 };
 
-const renderFlow = (
+const renderFlowNodes = (executionList: ExpandableExecution[]): Node[] => {
+  let elements: Node[] = [];
+
+  for (let index = 0; index < executionList.length; index++) {
+    const execution = executionList[index];
+    if (execution.executionList) {
+      elements = elements.concat(renderSubFlowNodes(execution));
+    } else {
+      if (
+        execution.requirement === "ALTERNATIVE" ||
+        execution.requirement === "DISABLED"
+      ) {
+        elements = elements.concat(renderParallelNodes(execution));
+      } else {
+        elements = elements.concat(renderSequentialNodes(execution));
+      }
+    }
+  }
+
+  return elements;
+};
+
+const renderFlowEdges = (
   start: AuthenticationExecutionInfoRepresentation,
   executionList: ExpandableExecution[],
   end: AuthenticationExecutionInfoRepresentation
-) => {
-  let elements: Elements = [];
+): Edge[] => {
+  let elements: Edge[] = [];
 
   for (let index = 0; index < executionList.length; index++) {
     const execution = executionList[index];
     if (execution.executionList) {
       elements = elements.concat(
-        renderSubFlow(execution, start, end, executionList[index - 1])
+        renderSubFlowEdges(execution, start, end, executionList[index - 1])
       );
     } else {
       if (
         execution.requirement === "ALTERNATIVE" ||
         execution.requirement === "DISABLED"
       ) {
-        elements = elements.concat(renderParallelNodes(start, execution, end));
+        elements = elements.concat(renderParallelEdges(start, execution, end));
       } else {
         elements = elements.concat(
-          renderSequentialNodes(
+          renderSequentialEdges(
             start,
             execution,
             end,
@@ -183,10 +218,18 @@ const renderFlow = (
   return elements;
 };
 
-export const FlowDiagram = ({
-  executionList: { expandableList },
-}: FlowDiagramProps) => {
-  let elements: Elements = [
+const nodeTypes: NodeTypes = {
+  conditional: ConditionalNode,
+  startSubFlow: StartSubFlowNode,
+  endSubFlow: EndSubFlowNode,
+};
+
+const edgeTypes: ButtonEdges = {
+  buttonEdge: ButtonEdge,
+};
+
+function renderNodes(expandableList: ExpandableExecution[]) {
+  return getLayoutedNodes([
     {
       id: "start",
       sourcePosition: Position.Right,
@@ -203,63 +246,54 @@ export const FlowDiagram = ({
       position: { x: 0, y: 0 },
       className: "keycloak__authentication__output_node",
     },
-  ];
+    ...renderFlowNodes(expandableList),
+  ]);
+}
 
-  elements = elements.concat(
-    renderFlow({ id: "start" }, expandableList, { id: "end" })
+function renderEdges(expandableList: ExpandableExecution[]): Edge[] {
+  return getLayoutedEdges(
+    renderFlowEdges({ id: "start" }, expandableList, {
+      id: "end",
+    })
   );
+}
 
-  const onLoad = (reactFlowInstance: { fitView: () => void }) =>
+export const FlowDiagram = ({
+  executionList: { expandableList },
+}: FlowDiagramProps) => {
+  const [expandDrawer, setExpandDrawer] = useState(false);
+  const initialNodes = useMemo(() => renderNodes(expandableList), []);
+  const initialEdges = useMemo(() => renderEdges(expandableList), []);
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  useUpdateEffect(() => {
+    setNodes(renderNodes(expandableList));
+    setEdges(renderEdges(expandableList));
+  }, [expandableList]);
+
+  const onInit = (reactFlowInstance: ReactFlowInstance) =>
     reactFlowInstance.fitView();
 
-  const [layoutedElements, setElements] = useState(
-    getLayoutedElements(elements)
-  );
-  const [expandDrawer, setExpandDrawer] = useState(false);
-
-  const onElementClick = (_event: ReactMouseEvent, element: Node | Edge) => {
-    if (isNode(element)) setExpandDrawer(!expandDrawer);
+  const onNodeClick: NodeMouseHandler = () => {
+    setExpandDrawer(!expandDrawer);
   };
 
-  const onElementsRemove = (elementsToRemove: Elements) =>
-    setElements((els) => removeElements(elementsToRemove, els));
-
   return (
-    <Drawer isExpanded={expandDrawer} onExpand={() => setExpandDrawer(true)}>
-      <DrawerContent
-        panelContent={
-          <DrawerPanelContent>
-            <DrawerHead>
-              <span tabIndex={expandDrawer ? 0 : -1}>drawer-panel</span>
-              <DrawerActions>
-                <DrawerCloseButton onClick={() => setExpandDrawer(false)} />
-              </DrawerActions>
-            </DrawerHead>
-          </DrawerPanelContent>
-        }
-      >
-        <DrawerContentBody>
-          <ReactFlow
-            nodeTypes={{
-              conditional: ConditionalNode,
-              startSubFlow: StartSubFlowNode,
-              endSubFlow: EndSubFlowNode,
-            }}
-            edgeTypes={{
-              buttonEdge: ButtonEdge,
-            }}
-            onElementClick={onElementClick}
-            onElementsRemove={onElementsRemove}
-            onLoad={onLoad}
-            elements={layoutedElements}
-            nodesConnectable={false}
-          >
-            <MiniMap />
-            <Controls />
-            <Background />
-          </ReactFlow>
-        </DrawerContentBody>
-      </DrawerContent>
-    </Drawer>
+    <ReactFlow
+      nodes={nodes}
+      edges={edges}
+      onNodesChange={onNodesChange}
+      onEdgesChange={onEdgesChange}
+      onInit={onInit}
+      nodeTypes={nodeTypes}
+      edgeTypes={edgeTypes as EdgeTypes}
+      onNodeClick={onNodeClick}
+      nodesConnectable={false}
+    >
+      <MiniMap />
+      <Controls />
+      <Background />
+    </ReactFlow>
   );
 };

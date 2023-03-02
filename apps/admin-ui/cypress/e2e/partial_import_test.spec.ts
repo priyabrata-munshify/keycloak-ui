@@ -1,7 +1,7 @@
-import SidebarPage from "../support/pages/admin_console/SidebarPage";
+import SidebarPage from "../support/pages/admin-ui/SidebarPage";
 import LoginPage from "../support/pages/LoginPage";
-import PartialImportModal from "../support/pages/admin_console/configure/realm_settings/PartialImportModal";
-import RealmSettings from "../support/pages/admin_console/configure/realm_settings/RealmSettings";
+import PartialImportModal from "../support/pages/admin-ui/configure/realm_settings/PartialImportModal";
+import RealmSettings from "../support/pages/admin-ui/configure/realm_settings/RealmSettings";
 import { keycloakBefore } from "../support/util/keycloak_hooks";
 import adminClient from "../support/util/AdminClient";
 
@@ -14,21 +14,19 @@ describe("Partial import test", () => {
   const realmSettings = new RealmSettings();
 
   beforeEach(() => {
+    loginPage.logIn();
+    keycloakBefore();
+    sidebarPage.goToRealm(TEST_REALM);
     sidebarPage.goToRealmSettings();
     realmSettings.clickActionMenu();
   });
 
-  before(() => {
-    cy.wrap(null).then(() =>
-      Promise.all([
-        adminClient.createRealm(TEST_REALM),
-        adminClient.createRealm(TEST_REALM_2),
-      ])
-    );
-    keycloakBefore();
-    loginPage.logIn();
-    sidebarPage.goToRealm(TEST_REALM);
-  });
+  before(() =>
+    Promise.all([
+      adminClient.createRealm(TEST_REALM),
+      adminClient.createRealm(TEST_REALM_2),
+    ])
+  );
 
   after(async () => {
     await Promise.all([

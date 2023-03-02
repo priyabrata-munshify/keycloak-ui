@@ -1,9 +1,9 @@
 import LoginPage from "../support/pages/LoginPage";
-import SidebarPage from "../support/pages/admin_console/SidebarPage";
-import SessionsPage from "../support/pages/admin_console/manage/sessions/SessionsPage";
+import SidebarPage from "../support/pages/admin-ui/SidebarPage";
+import SessionsPage from "../support/pages/admin-ui/manage/sessions/SessionsPage";
 import CommonPage from "../support/pages/CommonPage";
-import ListingPage from "../support/pages/admin_console/ListingPage";
-import GroupPage from "../support/pages/admin_console/manage/groups/GroupPage";
+import ListingPage from "../support/pages/admin-ui/ListingPage";
+import GroupPage from "../support/pages/admin-ui/manage/groups/GroupPage";
 import { keycloakBefore } from "../support/util/keycloak_hooks";
 
 const loginPage = new LoginPage();
@@ -16,14 +16,16 @@ const groupPage = new GroupPage();
 describe("Sessions test", () => {
   const admin = "admin";
   const client = "security-admin-console";
+
   beforeEach(() => {
-    keycloakBefore();
     loginPage.logIn();
+    keycloakBefore();
     sidebarPage.goToSessions();
   });
 
   describe("Sessions list view", () => {
     it("check item values", () => {
+      listingPage.searchItem(client, false);
       commonPage
         .tableUtils()
         .checkRowItemExists(admin)
@@ -31,6 +33,7 @@ describe("Sessions test", () => {
     });
 
     it("go to item accessed clients link", () => {
+      listingPage.searchItem(client, false);
       commonPage.tableUtils().clickRowItemLink(client);
     });
   });
@@ -72,13 +75,6 @@ describe("Sessions test", () => {
         .checkNotificationMessage(
           "No push sent. No admin URI configured or no registered cluster nodes available"
         );
-    });
-  });
-
-  describe("logout all sessions", () => {
-    it("logout all sessions", () => {
-      sessionsPage.logoutAllSessions();
-      cy.get("#kc-page-title").contains("Sign in to your account");
     });
   });
 });

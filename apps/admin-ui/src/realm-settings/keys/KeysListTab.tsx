@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom-v5-compat";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   Button,
@@ -27,7 +27,7 @@ import useToggle from "../../utils/useToggle";
 import "../realm-settings-section.css";
 
 const FILTER_OPTIONS = ["ACTIVE", "PASSIVE", "DISABLED"] as const;
-type FilterType = typeof FILTER_OPTIONS[number];
+type FilterType = (typeof FILTER_OPTIONS)[number];
 
 type KeyData = KeyMetadataRepresentation & {
   provider?: string;
@@ -122,51 +122,6 @@ export const KeysListTab = ({ realmComponents }: KeysListTabProps) => {
     onConfirm: () => Promise.resolve(),
   });
 
-  const ProviderRenderer = ({ provider }: KeyData) => provider;
-
-  const ButtonRenderer = ({ type, publicKey, certificate }: KeyData) => {
-    if (type === "EC") {
-      return (
-        <Button
-          onClick={() => {
-            togglePublicKeyDialog();
-            setPublicKey(publicKey!);
-          }}
-          variant="secondary"
-          id="kc-public-key"
-        >
-          {t("publicKeys").slice(0, -1)}
-        </Button>
-      );
-    } else if (type === "RSA") {
-      return (
-        <div className="button-wrapper">
-          <Button
-            onClick={() => {
-              togglePublicKeyDialog();
-              setPublicKey(publicKey!);
-            }}
-            variant="secondary"
-            id={publicKey}
-          >
-            {t("publicKeys").slice(0, -1)}
-          </Button>
-          <Button
-            onClick={() => {
-              toggleCertificateDialog();
-              setCertificate(certificate!);
-            }}
-            variant="secondary"
-            id={certificate}
-            className="kc-certificate"
-          >
-            {t("certificate")}
-          </Button>
-        </div>
-      );
-    }
-  };
-
   if (!keyData) {
     return <KeycloakSpinner />;
   }
@@ -213,16 +168,63 @@ export const KeysListTab = ({ realmComponents }: KeysListTabProps) => {
             transforms: [cellWidth(10)],
           },
           {
+            name: "use",
+            displayKey: "realm-settings:use",
+            cellFormatters: [emptyFormatter()],
+            transforms: [cellWidth(10)],
+          },
+          {
             name: "provider",
             displayKey: "realm-settings:provider",
-            cellRenderer: ProviderRenderer,
+            cellRenderer: ({ provider }: KeyData) => provider || "",
             cellFormatters: [emptyFormatter()],
             transforms: [cellWidth(10)],
           },
           {
             name: "publicKeys",
             displayKey: "realm-settings:publicKeys",
-            cellRenderer: ButtonRenderer,
+            cellRenderer: ({ type, publicKey, certificate }: KeyData) => {
+              if (type === "EC") {
+                return (
+                  <Button
+                    onClick={() => {
+                      togglePublicKeyDialog();
+                      setPublicKey(publicKey!);
+                    }}
+                    variant="secondary"
+                    id="kc-public-key"
+                  >
+                    {t("publicKeys").slice(0, -1)}
+                  </Button>
+                );
+              } else if (type === "RSA") {
+                return (
+                  <div className="button-wrapper">
+                    <Button
+                      onClick={() => {
+                        togglePublicKeyDialog();
+                        setPublicKey(publicKey!);
+                      }}
+                      variant="secondary"
+                      id={publicKey}
+                    >
+                      {t("publicKeys").slice(0, -1)}
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        toggleCertificateDialog();
+                        setCertificate(certificate!);
+                      }}
+                      variant="secondary"
+                      id={certificate}
+                      className="kc-certificate"
+                    >
+                      {t("certificate")}
+                    </Button>
+                  </div>
+                );
+              } else return "";
+            },
             cellFormatters: [],
             transforms: [cellWidth(20)],
           },

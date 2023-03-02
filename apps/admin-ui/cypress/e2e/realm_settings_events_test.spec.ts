@@ -1,10 +1,10 @@
-import SidebarPage from "../support/pages/admin_console/SidebarPage";
+import SidebarPage from "../support/pages/admin-ui/SidebarPage";
 import LoginPage from "../support/pages/LoginPage";
-import RealmSettingsPage from "../support/pages/admin_console/manage/realm_settings/RealmSettingsPage";
-import Masthead from "../support/pages/admin_console/Masthead";
+import RealmSettingsPage from "../support/pages/admin-ui/manage/realm_settings/RealmSettingsPage";
+import Masthead from "../support/pages/admin-ui/Masthead";
 import ModalUtils from "../support/util/ModalUtils";
 import { keycloakBefore } from "../support/util/keycloak_hooks";
-import ListingPage from "../support/pages/admin_console/ListingPage";
+import ListingPage from "../support/pages/admin-ui/ListingPage";
 import adminClient from "../support/util/AdminClient";
 
 const loginPage = new LoginPage();
@@ -14,12 +14,12 @@ const modalUtils = new ModalUtils();
 const realmSettingsPage = new RealmSettingsPage();
 
 describe("Realm settings events tab tests", () => {
-  const realmName = "Realm_" + (Math.random() + 1).toString(36).substring(7);
+  const realmName = "Realm_" + crypto.randomUUID();
   const listingPage = new ListingPage();
 
   beforeEach(() => {
-    keycloakBefore();
     loginPage.logIn();
+    keycloakBefore();
     sidebarPage.goToRealm(realmName);
   });
 
@@ -88,8 +88,8 @@ describe("Realm settings events tab tests", () => {
 
   const addBundle = () => {
     realmSettingsPage.addKeyValuePair(
-      "key_" + (Math.random() + 1).toString(36).substring(7),
-      "value_" + (Math.random() + 1).toString(36).substring(7)
+      "key_" + crypto.randomUUID(),
+      "value_" + crypto.randomUUID()
     );
 
     return this;
@@ -120,6 +120,7 @@ describe("Realm settings events tab tests", () => {
     masthead.checkNotificationMessage("Successfully saved configuration");
     cy.wait(["@fetchConfig"]);
     sidebarPage.waitForPageLoad();
+    cy.wait(1000);
     for (const event of events) {
       listingPage.searchItem(event, false).itemExist(event);
     }
@@ -141,33 +142,39 @@ describe("Realm settings events tab tests", () => {
     realmSettingsPage.toggleAddProviderDropdown();
 
     cy.findByTestId("option-aes-generated").click();
-    realmSettingsPage.enterConsoleDisplayName("test_aes-generated");
-    realmSettingsPage.addProvider();
-
-    realmSettingsPage.toggleAddProviderDropdown();
-
-    cy.findByTestId("option-ecdsa-generated").click();
-    realmSettingsPage.enterConsoleDisplayName("test_ecdsa-generated");
+    realmSettingsPage.enterUIDisplayName("test_aes-generated");
     realmSettingsPage.toggleSwitch("active", false);
-    realmSettingsPage.addProvider();
-
-    realmSettingsPage.toggleAddProviderDropdown();
-
-    cy.findByTestId("option-hmac-generated").click();
-    realmSettingsPage.enterConsoleDisplayName("test_hmac-generated");
     realmSettingsPage.toggleSwitch("enabled", false);
     realmSettingsPage.addProvider();
 
     realmSettingsPage.toggleAddProviderDropdown();
 
+    cy.findByTestId("option-ecdsa-generated").click();
+    realmSettingsPage.enterUIDisplayName("test_ecdsa-generated");
+    realmSettingsPage.toggleSwitch("enabled", false);
+    realmSettingsPage.addProvider();
+
+    realmSettingsPage.toggleAddProviderDropdown();
+
+    cy.findByTestId("option-hmac-generated").click();
+    realmSettingsPage.enterUIDisplayName("test_hmac-generated");
+    realmSettingsPage.toggleSwitch("active", false);
+    realmSettingsPage.addProvider();
+
+    realmSettingsPage.toggleAddProviderDropdown();
+
     cy.findByTestId("option-rsa-generated").click();
-    realmSettingsPage.enterConsoleDisplayName("test_rsa-generated");
+    realmSettingsPage.enterUIDisplayName("test_rsa-generated");
+    realmSettingsPage.toggleSwitch("active", false);
+    realmSettingsPage.toggleSwitch("enabled", false);
     realmSettingsPage.addProvider();
 
     realmSettingsPage.toggleAddProviderDropdown();
 
     cy.findByTestId("option-rsa-enc-generated").click();
-    realmSettingsPage.enterConsoleDisplayName("test_rsa-enc-generated");
+    realmSettingsPage.enterUIDisplayName("test_rsa-enc-generated");
+    realmSettingsPage.toggleSwitch("active", false);
+    realmSettingsPage.toggleSwitch("enabled", false);
     realmSettingsPage.addProvider();
   });
 
@@ -233,6 +240,12 @@ describe("Realm settings events tab tests", () => {
     realmSettingsPage.deleteProvider("test_aes-generated");
   });
 
+  it("list keys", () => {
+    sidebarPage.goToRealmSettings();
+    cy.findByTestId("rs-keys-tab").click();
+    realmSettingsPage.checkKeyPublic();
+  });
+
   it("add locale", () => {
     sidebarPage.goToRealmSettings();
 
@@ -258,6 +271,8 @@ describe("Realm settings events tab tests", () => {
     masthead.checkNotificationMessage(
       "Success! The message bundle has been added."
     );
+    realmSettingsPage.setDefaultLocale("dansk");
+    cy.findByTestId("localization-tab-save").click();
   });
 
   it("Realm header settings", () => {
@@ -409,8 +424,8 @@ describe("Realm settings events tab tests", () => {
 
 describe("Realm settings events tab tests", () => {
   beforeEach(() => {
-    keycloakBefore();
     loginPage.logIn();
+    keycloakBefore();
     sidebarPage.goToRealmSettings();
     cy.findByTestId("rs-realm-events-tab").click();
     cy.findByTestId("rs-event-listeners-tab").click();

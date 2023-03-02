@@ -1,3 +1,5 @@
+// @ts-nocheck
+import type TestLdapConnectionRepresentation from "@keycloak/keycloak-admin-client/lib/defs/testLdapConnection";
 import {
   AlertVariant,
   Button,
@@ -8,23 +10,22 @@ import {
   Switch,
   ValidatedOptions,
 } from "@patternfly/react-core";
-import { useTranslation } from "react-i18next";
-import { useState } from "react";
 import { get, isEqual } from "lodash-es";
+import { useState } from "react";
+import { Controller, UseFormReturn, useWatch } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 
-import type TestLdapConnectionRepresentation from "@keycloak/keycloak-admin-client/lib/defs/testLdapConnection";
-import { HelpItem } from "../../components/help-enabler/HelpItem";
-import { Controller, UseFormMethods, useWatch } from "react-hook-form";
+import { useAlerts } from "../../components/alert/Alerts";
 import { FormAccess } from "../../components/form-access/FormAccess";
-import { WizardSectionHeader } from "../../components/wizard-section-header/WizardSectionHeader";
+import { HelpItem } from "../../components/help-enabler/HelpItem";
+import { KeycloakTextInput } from "../../components/keycloak-text-input/KeycloakTextInput";
 import { PasswordInput } from "../../components/password-input/PasswordInput";
+import { WizardSectionHeader } from "../../components/wizard-section-header/WizardSectionHeader";
 import { useAdminClient } from "../../context/auth/AdminClient";
 import { useRealm } from "../../context/realm-context/RealmContext";
-import { useAlerts } from "../../components/alert/Alerts";
-import { KeycloakTextInput } from "../../components/keycloak-text-input/KeycloakTextInput";
 
 export type LdapSettingsConnectionProps = {
-  form: UseFormMethods;
+  form: UseFormReturn;
   id?: string;
   showSectionHeading?: boolean;
   showSectionDescription?: boolean;
@@ -42,7 +43,7 @@ const testLdapProperties: Array<keyof TestLdapConnectionRepresentation> = [
 
 type TestTypes = "testConnection" | "testAuthentication";
 
-export const convertFormToSettings = (form: UseFormMethods) => {
+export const convertFormToSettings = (form: UseFormReturn) => {
   const settings: TestLdapConnectionRepresentation = {};
 
   testLdapProperties.forEach((key) => {
@@ -110,28 +111,33 @@ export const LdapSettingsConnection = ({
               fieldLabelId="user-federation:connectionURL"
             />
           }
-          fieldId="kc-console-connection-url"
+          fieldId="kc-ui-connection-url"
           isRequired
           validated={
-            form.errors.config?.connectionUrl?.[0] ? "error" : "default"
+            form.formState.errors.config?.connectionUrl?.[0]
+              ? "error"
+              : "default"
           }
-          helperTextInvalid={form.errors.config?.connectionUrl?.[0].message}
+          helperTextInvalid={
+            form.formState.errors.config?.connectionUrl?.[0].message
+          }
         >
           <KeycloakTextInput
             isRequired
-            type="text"
-            id="kc-console-connection-url"
+            type="url"
+            id="kc-ui-connection-url"
             data-testid="ldap-connection-url"
-            name="config.connectionUrl[0]"
-            ref={form.register({
+            validated={
+              form.formState.errors.config?.connectionUrl?.[0]
+                ? "error"
+                : "default"
+            }
+            {...form.register("config.connectionUrl.0", {
               required: {
                 value: true,
-                message: `${t("validateConnectionUrl")}`,
+                message: t("validateConnectionUrl").toString(),
               },
             })}
-            validated={
-              form.errors.config?.connectionUrl?.[0] ? "error" : "default"
-            }
           />
         </FormGroup>
         <FormGroup
@@ -149,13 +155,13 @@ export const LdapSettingsConnection = ({
             name="config.startTls"
             defaultValue={["false"]}
             control={form.control}
-            render={({ onChange, value }) => (
+            render={({ field }) => (
               <Switch
                 id={"kc-enable-start-tls"}
                 data-testid="enable-start-tls"
                 isDisabled={false}
-                onChange={(value) => onChange([`${value}`])}
-                isChecked={value[0] === "true"}
+                onChange={(value) => field.onChange([`${value}`])}
+                isChecked={field.value[0] === "true"}
                 label={t("common:on")}
                 labelOff={t("common:off")}
                 aria-label={t("enableStartTls")}
@@ -178,7 +184,7 @@ export const LdapSettingsConnection = ({
             name="config.useTruststoreSpi[0]"
             control={form.control}
             defaultValue="ldapsOnly"
-            render={({ onChange, value }) => (
+            render={({ field }) => (
               <Select
                 toggleId="kc-use-truststore-spi"
                 onToggle={() =>
@@ -186,10 +192,10 @@ export const LdapSettingsConnection = ({
                 }
                 isOpen={isTruststoreSpiDropdownOpen}
                 onSelect={(_, value) => {
-                  onChange(value.toString());
+                  field.onChange(value.toString());
                   setIsTruststoreSpiDropdownOpen(false);
                 }}
-                selections={value}
+                selections={field.value}
               >
                 <SelectOption value="always">{t("always")}</SelectOption>
                 <SelectOption value="ldapsOnly">{t("onlyLdaps")}</SelectOption>
@@ -213,13 +219,13 @@ export const LdapSettingsConnection = ({
             name="config.connectionPooling"
             defaultValue={["false"]}
             control={form.control}
-            render={({ onChange, value }) => (
+            render={({ field }) => (
               <Switch
                 id={"kc-connection-pooling"}
                 data-testid="connection-pooling"
                 isDisabled={false}
-                onChange={(value) => onChange([`${value}`])}
-                isChecked={value[0] === "true"}
+                onChange={(value) => field.onChange([`${value}`])}
+                isChecked={field.value[0] === "true"}
                 label={t("common:on")}
                 labelOff={t("common:off")}
                 aria-label={t("connectionPooling")}
@@ -235,15 +241,14 @@ export const LdapSettingsConnection = ({
               fieldLabelId="user-federation:consoleTimeout"
             />
           }
-          fieldId="kc-console-connection-timeout"
+          fieldId="kc-ui-connection-timeout"
         >
           <KeycloakTextInput
             type="number"
             min={0}
-            id="kc-console-connection-timeout"
+            id="kc-ui-connection-timeout"
             data-testid="connection-timeout"
-            name="config.connectionTimeout[0]"
-            ref={form.register}
+            {...form.register("config.connectionTimeout.0")}
           />
         </FormGroup>
         <FormGroup fieldId="kc-test-connection-button">
@@ -271,7 +276,7 @@ export const LdapSettingsConnection = ({
             name="config.authType[0]"
             defaultValue="simple"
             control={form.control}
-            render={({ onChange, value }) => (
+            render={({ field }) => (
               <Select
                 toggleId="kc-bind-type"
                 required
@@ -280,10 +285,10 @@ export const LdapSettingsConnection = ({
                 }
                 isOpen={isBindTypeDropdownOpen}
                 onSelect={(_, value) => {
-                  onChange(value as string);
+                  field.onChange(value as string);
                   setIsBindTypeDropdownOpen(false);
                 }}
-                selections={value}
+                selections={field.value}
                 variant={SelectVariant.single}
                 data-testid="ldap-bind-type"
               >
@@ -304,10 +309,10 @@ export const LdapSettingsConnection = ({
                   fieldLabelId="user-federation:bindDn"
                 />
               }
-              fieldId="kc-console-bind-dn"
+              fieldId="kc-ui-bind-dn"
               helperTextInvalid={t("validateBindDn")}
               validated={
-                form.errors.config?.bindDn
+                form.formState.errors.config?.bindDn
                   ? ValidatedOptions.error
                   : ValidatedOptions.default
               }
@@ -315,15 +320,14 @@ export const LdapSettingsConnection = ({
             >
               <KeycloakTextInput
                 type="text"
-                id="kc-console-bind-dn"
+                id="kc-ui-bind-dn"
                 data-testid="ldap-bind-dn"
-                name="config.bindDn[0]"
-                ref={form.register({ required: true })}
                 validated={
-                  form.errors.config?.bindDn
+                  form.formState.errors.config?.bindDn
                     ? ValidatedOptions.error
                     : ValidatedOptions.default
                 }
+                {...form.register("config.bindDn.0", { required: true })}
               />
             </FormGroup>
             <FormGroup
@@ -334,10 +338,10 @@ export const LdapSettingsConnection = ({
                   fieldLabelId="user-federation:bindCredentials"
                 />
               }
-              fieldId="kc-console-bind-credentials"
+              fieldId="kc-ui-bind-credentials"
               helperTextInvalid={t("validateBindCredentials")}
               validated={
-                form.errors.config?.bindCredential
+                form.formState.errors.config?.bindCredential
                   ? ValidatedOptions.error
                   : ValidatedOptions.default
               }
@@ -346,17 +350,16 @@ export const LdapSettingsConnection = ({
               <PasswordInput
                 hasReveal={!edit}
                 isRequired
-                id="kc-console-bind-credentials"
+                id="kc-ui-bind-credentials"
                 data-testid="ldap-bind-credentials"
-                name="config.bindCredential[0]"
-                ref={form.register({
-                  required: true,
-                })}
                 validated={
-                  form.errors.config?.bindCredential
+                  form.formState.errors.config?.bindCredential
                     ? ValidatedOptions.error
                     : ValidatedOptions.default
                 }
+                {...form.register("config.bindCredential.0", {
+                  required: true,
+                })}
               />
             </FormGroup>
           </>

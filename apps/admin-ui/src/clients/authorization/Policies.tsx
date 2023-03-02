@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom-v5-compat";
-import { useNavigate } from "react-router-dom-v5-compat";
+import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   Alert,
@@ -48,6 +47,19 @@ type ExpandablePolicyRepresentation = PolicyRepresentation & {
   isExpanded: boolean;
 };
 
+const DependentPoliciesRenderer = ({
+  row,
+}: {
+  row: ExpandablePolicyRepresentation;
+}) => {
+  return (
+    <>
+      {row.dependentPolicies?.[0]?.name}{" "}
+      <MoreLabel array={row.dependentPolicies} />
+    </>
+  );
+};
+
 export const AuthorizationPolicies = ({ clientId }: PoliciesProps) => {
   const { t } = useTranslation("clients");
   const { adminClient } = useAdminClient();
@@ -81,7 +93,7 @@ export const AuthorizationPolicies = ({ clientId }: PoliciesProps) => {
 
       return await Promise.all([
         adminClient.clients.listPolicyProviders({ id: clientId }),
-        ...policies.map(async (policy) => {
+        ...(policies || []).map(async (policy) => {
           const dependentPolicies =
             await adminClient.clients.listDependentPolicies({
               id: clientId,
@@ -104,19 +116,6 @@ export const AuthorizationPolicies = ({ clientId }: PoliciesProps) => {
     },
     [key, search, first, max]
   );
-
-  const DependentPoliciesRenderer = ({
-    row,
-  }: {
-    row: ExpandablePolicyRepresentation;
-  }) => {
-    return (
-      <>
-        {row.dependentPolicies?.[0]?.name}{" "}
-        <MoreLabel array={row.dependentPolicies} />
-      </>
-    );
-  };
 
   const [toggleDeleteDialog, DeleteConfirm] = useConfirmDialog({
     titleKey: "clients:deletePolicy",

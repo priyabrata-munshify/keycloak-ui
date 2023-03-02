@@ -1,24 +1,23 @@
 import LoginPage from "../support/pages/LoginPage";
-import {
+import ListingPage, {
   Filter,
   FilterAssignedType,
-} from "../support/pages/admin_console/ListingPage";
-import CreateClientPage from "../support/pages/admin_console/manage/clients/CreateClientPage";
+} from "../support/pages/admin-ui/ListingPage";
+import CreateClientPage from "../support/pages/admin-ui/manage/clients/CreateClientPage";
 import adminClient from "../support/util/AdminClient";
 import { keycloakBefore } from "../support/util/keycloak_hooks";
-import RoleMappingTab from "../support/pages/admin_console/manage/RoleMappingTab";
-import createRealmRolePage from "../support/pages/admin_console/manage/realm_roles/CreateRealmRolePage";
-import AssociatedRolesPage from "../support/pages/admin_console/manage/realm_roles/AssociatedRolesPage";
-import ClientRolesTab from "../support/pages/admin_console/manage/clients/ClientRolesTab";
-import InitialAccessTokenTab from "../support/pages/admin_console/manage/clients/tabs/InitialAccessTokenTab";
-import AdvancedTab from "../support/pages/admin_console/manage/clients/client_details/tabs/AdvancedTab";
+import RoleMappingTab from "../support/pages/admin-ui/manage/RoleMappingTab";
+import createRealmRolePage from "../support/pages/admin-ui/manage/realm_roles/CreateRealmRolePage";
+import AssociatedRolesPage from "../support/pages/admin-ui/manage/realm_roles/AssociatedRolesPage";
+import ClientRolesTab from "../support/pages/admin-ui/manage/clients/ClientRolesTab";
+import InitialAccessTokenTab from "../support/pages/admin-ui/manage/clients/tabs/InitialAccessTokenTab";
+import AdvancedTab from "../support/pages/admin-ui/manage/clients/client_details/tabs/AdvancedTab";
 import ClientDetailsPage, {
   ClientsDetailsTab,
-} from "../support/pages/admin_console/manage/clients/client_details/ClientDetailsPage";
+} from "../support/pages/admin-ui/manage/clients/client_details/ClientDetailsPage";
 import CommonPage from "../support/pages/CommonPage";
-import ListingPage from "../support/pages/admin_console/ListingPage";
-import AttributesTab from "../support/pages/admin_console/manage/AttributesTab";
-import DedicatedScopesMappersTab from "../support/pages/admin_console/manage/clients/client_details/DedicatedScopesMappersTab";
+import AttributesTab from "../support/pages/admin-ui/manage/AttributesTab";
+import DedicatedScopesMappersTab from "../support/pages/admin-ui/manage/clients/client_details/DedicatedScopesMappersTab";
 
 let itemId = "client_crud";
 const loginPage = new LoginPage();
@@ -70,8 +69,8 @@ describe("Clients test", () => {
     });
 
     beforeEach(() => {
-      keycloakBefore();
       loginPage.logIn();
+      keycloakBefore();
       commonPage.sidebar().goToClients();
       commonPage.tableToolbarUtils().searchItem(clientId);
       cy.intercept("/admin/realms/master/clients/*").as("fetchClient");
@@ -233,12 +232,9 @@ describe("Clients test", () => {
   });
 
   describe("Client creation", () => {
-    before(() => {
-      keycloakBefore();
-      loginPage.logIn();
-    });
-
     beforeEach(() => {
+      loginPage.logIn();
+      keycloakBefore();
       commonPage.sidebar().goToClients();
     });
 
@@ -263,6 +259,7 @@ describe("Clients test", () => {
         .fillClientData(clientId)
         .continue()
         .checkCapabilityConfigElements()
+        .continue()
         .save();
 
       commonPage
@@ -305,7 +302,7 @@ describe("Clients test", () => {
         .continue()
         .checkClientIdRequiredMessage();
 
-      createClientPage.fillClientData("account").continue().save();
+      createClientPage.fillClientData("account").continue().continue().save();
 
       // The error should inform about duplicated name/id
       commonPage
@@ -316,7 +313,7 @@ describe("Clients test", () => {
     });
 
     it("Client CRUD test", () => {
-      itemId += "_" + (Math.random() + 1).toString(36).substring(7);
+      itemId += "_" + crypto.randomUUID();
 
       // Create
       commonPage.tableUtils().checkRowItemExists(itemId, false);
@@ -336,6 +333,7 @@ describe("Clients test", () => {
         .clickOidcCibaGrant()
         .clickServiceAccountRoles()
         .clickStandardFlow()
+        .continue()
         .save();
 
       commonPage
@@ -437,7 +435,6 @@ describe("Clients test", () => {
 
     it("Should fail to create imported client with empty ID", () => {
       commonPage.sidebar().goToClients();
-      commonPage.masthead().closeAllAlertMessages();
       cy.findByTestId("importClient").click();
       cy.findByTestId("kc-client-id").click();
       cy.findByText("Save").click();
@@ -449,7 +446,11 @@ describe("Clients test", () => {
       commonPage.sidebar().goToClients();
       commonPage.tableToolbarUtils().createClient();
 
-      createClientPage.fillClientData(identicalClientId).continue().save();
+      createClientPage
+        .fillClientData(identicalClientId)
+        .continue()
+        .continue()
+        .save();
 
       commonPage.masthead().closeAllAlertMessages();
       commonPage.sidebar().goToClients();
@@ -479,29 +480,19 @@ describe("Clients test", () => {
 
   describe("Roles tab test", () => {
     const rolesTab = new ClientRolesTab();
-    let client: string;
+    const client = "client_" + crypto.randomUUID();
 
-    before(() => {
-      keycloakBefore();
-      loginPage.logIn();
-      commonPage.sidebar().goToClients();
-
-      client = "client_" + (Math.random() + 1).toString(36).substring(7);
-
-      commonPage.tableToolbarUtils().createClient();
-
-      createClientPage
-        .selectClientType("openid-connect")
-        .fillClientData(client)
-        .continue()
-        .save();
-      commonPage
-        .masthead()
-        .checkNotificationMessage("Client created successfully", true);
-    });
+    before(() =>
+      adminClient.createClient({
+        clientId: client,
+        protocol: "openid-connect",
+        publicClient: false,
+      })
+    );
 
     beforeEach(() => {
       loginPage.logIn();
+      keycloakBefore();
       commonPage.sidebar().goToClients();
       commonPage.tableToolbarUtils().searchItem(client);
       commonPage.tableUtils().clickRowItemLink(client);
@@ -536,23 +527,19 @@ describe("Clients test", () => {
     });
 
     it("Should add attribute to client role", () => {
-      cy.intercept("/admin/realms/master/roles-by-id/*").as("load");
       commonPage.tableUtils().clickRowItemLink(itemId);
-      cy.wait("@load");
       rolesTab.goToAttributesTab();
       attributesTab
         .addAttribute("crud_attribute_key", "crud_attribute_value")
         .save();
-      attributesTab.asseertRowItemsEqualTo(1);
+      attributesTab.assertRowItemsEqualTo(1);
       commonPage
         .masthead()
         .checkNotificationMessage("The role has been saved", true);
     });
 
     it("Should delete attribute from client role", () => {
-      cy.intercept("/admin/realms/master/roles-by-id/*").as("load");
       commonPage.tableUtils().clickRowItemLink(itemId);
-      cy.wait("@load");
       rolesTab.goToAttributesTab();
       attributesTab.deleteAttribute(1);
       commonPage
@@ -635,7 +622,7 @@ describe("Clients test", () => {
       rolesTab.goToAssociatedRolesTab();
       commonPage.tableUtils().selectRowItemAction("create-realm", "Unassign");
       commonPage.sidebar().waitForPageLoad();
-      commonPage.modalUtils().checkModalTitle("Remove mapping?").confirmModal();
+      commonPage.modalUtils().checkModalTitle("Remove role?").confirmModal();
       commonPage.sidebar().waitForPageLoad();
 
       commonPage
@@ -644,7 +631,7 @@ describe("Clients test", () => {
 
       commonPage.tableUtils().selectRowItemAction("manage-consent", "Unassign");
       commonPage.sidebar().waitForPageLoad();
-      commonPage.modalUtils().checkModalTitle("Remove mapping?").confirmModal();
+      commonPage.modalUtils().checkModalTitle("Remove role?").confirmModal();
     });
 
     it("Should delete associated role from search bar test", () => {
@@ -663,7 +650,7 @@ describe("Clients test", () => {
       associatedRolesPage.removeAssociatedRoles();
 
       commonPage.sidebar().waitForPageLoad();
-      commonPage.modalUtils().checkModalTitle("Remove mapping?").confirmModal();
+      commonPage.modalUtils().checkModalTitle("Remove role?").confirmModal();
       commonPage.sidebar().waitForPageLoad();
 
       commonPage
@@ -694,14 +681,11 @@ describe("Clients test", () => {
     const advancedTab = new AdvancedTab();
     let client: string;
 
-    before(() => {
-      keycloakBefore();
-      loginPage.logIn();
-    });
-
     beforeEach(() => {
+      loginPage.logIn();
+      keycloakBefore();
       commonPage.sidebar().goToClients();
-      client = "client_" + (Math.random() + 1).toString(36).substring(7);
+      client = "client_" + crypto.randomUUID();
       commonPage.tableToolbarUtils().createClient();
       createClientPage
         .selectClientType("openid-connect")
@@ -710,8 +694,10 @@ describe("Clients test", () => {
 
       commonPage.sidebar().waitForPageLoad();
 
-      createClientPage.save();
-
+      createClientPage.continue().save();
+      commonPage
+        .masthead()
+        .checkNotificationMessage("Client created successfully");
       clientDetailsPage.goToAdvancedTab();
     });
 
@@ -726,6 +712,7 @@ describe("Clients test", () => {
 
       advancedTab.registerNodeManually().fillHost("localhost").saveHost();
       advancedTab.checkTestClusterAvailability(true);
+      commonPage.masthead().checkNotificationMessage("Node successfully added");
       advancedTab.deleteClusterNode();
       commonPage.modalUtils().confirmModal();
       commonPage
@@ -745,15 +732,71 @@ describe("Clients test", () => {
         .revertFineGrain();
       advancedTab.checkAccessTokenSignatureAlgorithm(algorithm);
     });
+
+    it("OIDC Compatibility Modes configuration", () => {
+      advancedTab.clickAllCompatibilitySwitch();
+      advancedTab.saveCompatibility();
+      advancedTab.jumpToCompatability();
+      advancedTab.clickExcludeSessionStateSwitch();
+      advancedTab.clickUseRefreshTokenForClientCredentialsGrantSwitch();
+      advancedTab.revertCompatibility();
+    });
+
+    it("Advanced settings", () => {
+      advancedTab.jumpToAdvanced();
+
+      advancedTab.clickAdvancedSwitches();
+      advancedTab.jumpToAdvanced();
+      advancedTab.selectKeyForCodeExchangeInput("S256");
+
+      advancedTab.saveAdvanced();
+      advancedTab.jumpToAdvanced();
+      advancedTab.checkAdvancedSwitchesOn();
+      advancedTab.checkKeyForCodeExchangeInput("S256");
+
+      advancedTab.selectKeyForCodeExchangeInput("plain");
+      advancedTab.checkKeyForCodeExchangeInput("plain");
+
+      advancedTab.jumpToAdvanced();
+      advancedTab.clickAdvancedSwitches();
+
+      advancedTab.revertAdvanced();
+      advancedTab.jumpToAdvanced();
+      advancedTab.checkKeyForCodeExchangeInput("S256");
+      //uncomment when revert button reverts all switches
+      //and ACR to LoA Mapping + Default ACR Values
+      //advancedTab.checkAdvancedSwitchesOn();
+    });
+
+    it("Authentication flow override", () => {
+      advancedTab.jumpToAuthFlow();
+      advancedTab.selectBrowserFlowInput("browser");
+      advancedTab.selectDirectGrantInput("docker auth");
+      advancedTab.checkBrowserFlowInput("browser");
+      advancedTab.checkDirectGrantInput("docker auth");
+
+      advancedTab.revertAuthFlowOverride();
+      advancedTab.jumpToAuthFlow();
+      advancedTab.checkBrowserFlowInput("");
+      advancedTab.checkDirectGrantInput("");
+      advancedTab.selectBrowserFlowInput("browser");
+      advancedTab.selectDirectGrantInput("docker auth");
+
+      advancedTab.saveAuthFlowOverride();
+      advancedTab.selectBrowserFlowInput("first broker login");
+      advancedTab.selectDirectGrantInput("first broker login");
+      advancedTab.revertAuthFlowOverride();
+      //revert doesn't work after saving.
+      //advancedTab.CheckBrowserFlowInput("browser");
+      //advancedTab.CheckDirectGrantInput("docker auth");
+    });
   });
 
   describe("Service account tab test", () => {
     const serviceAccountTab = new RoleMappingTab("user");
     const serviceAccountName = "service-account-client";
 
-    before(() => {
-      keycloakBefore();
-      loginPage.logIn();
+    before(() =>
       adminClient.createClient({
         protocol: "openid-connect",
         clientId: serviceAccountName,
@@ -761,10 +804,12 @@ describe("Clients test", () => {
         authorizationServicesEnabled: true,
         serviceAccountsEnabled: true,
         standardFlowEnabled: true,
-      });
-    });
+      })
+    );
 
     beforeEach(() => {
+      loginPage.logIn();
+      keycloakBefore();
       commonPage.sidebar().goToClients();
     });
 
@@ -820,7 +865,7 @@ describe("Clients test", () => {
       serviceAccountTab.selectRow("create-realm").unAssign();
 
       commonPage.sidebar().waitForPageLoad();
-      commonPage.modalUtils().checkModalTitle("Remove mapping?").confirmModal();
+      commonPage.modalUtils().checkModalTitle("Remove role?").confirmModal();
       commonPage
         .masthead()
         .checkNotificationMessage("Scope mapping successfully removed");
@@ -844,6 +889,8 @@ describe("Clients test", () => {
 
       commonPage.sidebar().waitForPageLoad();
 
+      serviceAccountTab.hideInheritedRoles();
+
       serviceAccountTab
         .selectRow("offline_access")
         .selectRow("admin")
@@ -862,6 +909,8 @@ describe("Clients test", () => {
 
       commonPage.sidebar().waitForPageLoad();
 
+      serviceAccountTab.unhideInheritedRoles();
+
       serviceAccountTab
         .checkRoles(["create-realm"], false)
         .checkRoles([
@@ -876,8 +925,8 @@ describe("Clients test", () => {
   describe("Mapping tab", () => {
     const mappingClient = "mapping-client";
     beforeEach(() => {
-      keycloakBefore();
       loginPage.logIn();
+      keycloakBefore();
       commonPage.sidebar().goToClients();
       commonPage.tableToolbarUtils().searchItem(mappingClient);
       commonPage.tableUtils().clickRowItemLink(mappingClient);
@@ -911,17 +960,17 @@ describe("Clients test", () => {
   describe("Keys tab test", () => {
     const keysName = "keys-client";
 
-    before(() => {
-      keycloakBefore();
-      loginPage.logIn();
+    before(() =>
       adminClient.createClient({
         protocol: "openid-connect",
         clientId: keysName,
         publicClient: false,
-      });
-    });
+      })
+    );
 
     beforeEach(() => {
+      loginPage.logIn();
+      keycloakBefore();
       commonPage.sidebar().goToClients();
       commonPage.tableToolbarUtils().searchItem(keysName);
       commonPage.tableUtils().clickRowItemLink(keysName);
@@ -931,16 +980,10 @@ describe("Clients test", () => {
       adminClient.deleteClient(keysName);
     });
 
-    it("Change use JWKS Url", () => {
-      const keysTab = clientDetailsPage.goToKeysTab();
-      keysTab.formUtils().checkSaveButtonIsDisabled(true);
-      keysTab.toggleUseJwksUrl().formUtils().checkSaveButtonIsDisabled(false);
-    });
-
     it("Generate new keys", () => {
       const keysTab = clientDetailsPage.goToKeysTab();
       keysTab.clickGenerate();
-      keysTab.fillGenerateModal("keyname", "123", "1234").clickConfirm();
+      keysTab.fillGenerateModal("JKS", "keyname", "123", "1234").clickConfirm();
 
       commonPage
         .masthead()
@@ -953,22 +996,21 @@ describe("Clients test", () => {
   describe("Realm client", () => {
     const clientName = "master-realm";
 
-    before(() => {
-      keycloakBefore();
+    beforeEach(() => {
       loginPage.logIn();
+      keycloakBefore();
       commonPage.sidebar().goToClients();
       commonPage.tableToolbarUtils().searchItem(clientName);
       commonPage.tableUtils().clickRowItemLink(clientName);
     });
 
     it("Displays the correct tabs", () => {
+      clientDetailsPage.goToSettingsTab();
       clientDetailsPage
-        .goToSettingsTab()
         .tabUtils()
         .checkTabExists(ClientsDetailsTab.Settings, true)
         .checkTabExists(ClientsDetailsTab.Roles, true)
         .checkTabExists(ClientsDetailsTab.Sessions, true)
-        .checkTabExists(ClientsDetailsTab.Authorization, true)
         .checkTabExists(ClientsDetailsTab.Permissions, true)
         .checkTabExists(ClientsDetailsTab.Advanced, true)
         .checkNumberOfTabsIsEqual(5);
@@ -985,15 +1027,19 @@ describe("Clients test", () => {
   describe("Bearer only", () => {
     const clientId = "bearer-only";
 
-    before(() => {
-      keycloakBefore();
-      loginPage.logIn();
+    before(() =>
       adminClient.createClient({
         clientId,
         protocol: "openid-connect",
         publicClient: false,
         bearerOnly: true,
-      });
+      })
+    );
+
+    beforeEach(() => {
+      loginPage.logIn();
+      keycloakBefore();
+
       commonPage.sidebar().goToClients();
       cy.intercept("/admin/realms/master/clients/*").as("fetchClient");
       commonPage.tableToolbarUtils().searchItem(clientId);

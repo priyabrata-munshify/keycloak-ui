@@ -21,7 +21,7 @@ export const SamlImportKeyDialog = ({
   onClose,
 }: SamlImportKeyDialogProps) => {
   const { t } = useTranslation("clients");
-  const form = useFormContext();
+  const form = useFormContext<SamlKeysDialogForm>();
   const { handleSubmit } = form;
 
   const { adminClient } = useAdminClient();
@@ -49,7 +49,7 @@ export const SamlImportKeyDialog = ({
       }}
     >
       <FormProvider {...form}>
-        <KeyForm useFile />
+        <KeyForm useFile hasPem />
       </FormProvider>
     </ConfirmDialogModal>
   );

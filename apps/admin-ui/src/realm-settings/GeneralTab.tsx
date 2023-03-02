@@ -1,6 +1,4 @@
-import { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { Controller, FormProvider, useForm } from "react-hook-form";
+import type RealmRepresentation from "@keycloak/keycloak-admin-client/lib/defs/realmRepresentation";
 import {
   ActionGroup,
   Button,
@@ -14,21 +12,23 @@ import {
   StackItem,
   Switch,
 } from "@patternfly/react-core";
+import { useEffect, useState } from "react";
+import { Controller, FormProvider, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 
-import type RealmRepresentation from "@keycloak/keycloak-admin-client/lib/defs/realmRepresentation";
+import { FormattedLink } from "../components/external-link/FormattedLink";
+import { FormAccess } from "../components/form-access/FormAccess";
+import { HelpItem } from "../components/help-enabler/HelpItem";
+import { KeyValueInput } from "../components/key-value-form/KeyValueInput";
+import { KeycloakTextInput } from "../components/keycloak-text-input/KeycloakTextInput";
+import { useAdminClient } from "../context/auth/AdminClient";
+import { useRealm } from "../context/realm-context/RealmContext";
 import {
   addTrailingSlash,
   convertAttributeNameToForm,
   convertToFormValues,
 } from "../util";
 import useIsFeatureEnabled, { Feature } from "../utils/useIsFeatureEnabled";
-import { useAdminClient } from "../context/auth/AdminClient";
-import { useRealm } from "../context/realm-context/RealmContext";
-import { FormAccess } from "../components/form-access/FormAccess";
-import { HelpItem } from "../components/help-enabler/HelpItem";
-import { FormattedLink } from "../components/external-link/FormattedLink";
-import { KeycloakTextInput } from "../components/keycloak-text-input/KeycloakTextInput";
-import { KeyValueInput } from "../components/key-value-form/KeyValueInput";
 
 type RealmSettingsGeneralTabProps = {
   realm: RealmRepresentation;
@@ -42,13 +42,13 @@ export const RealmSettingsGeneralTab = ({
   const { t } = useTranslation("realm-settings");
   const { adminClient } = useAdminClient();
   const { realm: realmName } = useRealm();
-  const form = useForm<RealmRepresentation>({ shouldUnregister: false });
+  const form = useForm<RealmRepresentation>();
   const {
     register,
     control,
     handleSubmit,
     setValue,
-    formState: { isDirty },
+    formState: { isDirty, errors },
   } = form;
   const isFeatureEnabled = useIsFeatureEnabled();
   const [open, setOpen] = useState(false);
@@ -62,7 +62,10 @@ export const RealmSettingsGeneralTab = ({
         JSON.parse(realm.attributes["acr.loa.map"])
       ).flatMap(([key, value]) => ({ key, value }));
       result.concat({ key: "", value: "" });
-      setValue(convertAttributeNameToForm("attributes.acr.loa.map"), result);
+      setValue(
+        convertAttributeNameToForm("attributes.acr.loa.map") as any,
+        result
+      );
     }
   };
 
@@ -76,32 +79,41 @@ export const RealmSettingsGeneralTab = ({
         className="pf-u-mt-lg"
         onSubmit={handleSubmit(save)}
       >
-        <FormGroup label={t("realmId")} fieldId="kc-realm-id" isRequired>
+        <FormGroup
+          label={t("realmId")}
+          fieldId="kc-realm-id"
+          isRequired
+          validated={errors.realm ? "error" : "default"}
+          helperTextInvalid={errors.realm?.message}
+        >
           <Controller
             name="realm"
             control={control}
+            rules={{
+              required: { value: true, message: t("common:required") },
+              pattern: {
+                value: /^[a-zA-Z0-9-_]+$/,
+                message: t("realm:invalidRealmName"),
+              },
+            }}
             defaultValue=""
-            render={({ onChange, value }) => (
-              <ClipboardCopy data-testid="realmName" onChange={onChange}>
-                {value}
+            render={({ field }) => (
+              <ClipboardCopy data-testid="realmName" onChange={field.onChange}>
+                {field.value}
               </ClipboardCopy>
             )}
           />
         </FormGroup>
         <FormGroup label={t("displayName")} fieldId="kc-display-name">
           <KeycloakTextInput
-            type="text"
             id="kc-display-name"
-            name="displayName"
-            ref={register}
+            {...register("displayName")}
           />
         </FormGroup>
         <FormGroup label={t("htmlDisplayName")} fieldId="kc-html-display-name">
           <KeycloakTextInput
-            type="text"
             id="kc-html-display-name"
-            name="displayNameHtml"
-            ref={register}
+            {...register("displayNameHtml")}
           />
         </FormGroup>
         <FormGroup
@@ -115,10 +127,9 @@ export const RealmSettingsGeneralTab = ({
           }
         >
           <KeycloakTextInput
-            type="text"
+            type="url"
             id="kc-frontend-url"
-            name={convertAttributeNameToForm("attributes.frontendUrl")}
-            ref={register}
+            {...register(convertAttributeNameToForm("attributes.frontendUrl"))}
           />
         </FormGroup>
         <FormGroup
@@ -135,22 +146,22 @@ export const RealmSettingsGeneralTab = ({
             name="sslRequired"
             defaultValue="none"
             control={control}
-            render={({ onChange, value }) => (
+            render={({ field }) => (
               <Select
                 toggleId="kc-require-ssl"
                 onToggle={() => setOpen(!open)}
                 onSelect={(_, value) => {
-                  onChange(value as string);
+                  field.onChange(value as string);
                   setOpen(false);
                 }}
-                selections={value}
+                selections={field.value}
                 variant={SelectVariant.single}
                 aria-label={t("requireSsl")}
                 isOpen={open}
               >
                 {requireSslTypes.map((sslType) => (
                   <SelectOption
-                    selected={sslType === value}
+                    selected={sslType === field.value}
                     key={sslType}
                     value={sslType}
                   >
@@ -192,14 +203,14 @@ export const RealmSettingsGeneralTab = ({
             name="userManagedAccessAllowed"
             control={control}
             defaultValue={false}
-            render={({ onChange, value }) => (
+            render={({ field }) => (
               <Switch
                 id="kc-user-managed-access"
                 data-testid="user-managed-access-switch"
                 label={t("common:on")}
                 labelOff={t("common:off")}
-                isChecked={value}
-                onChange={onChange}
+                isChecked={field.value}
+                onChange={field.onChange}
                 aria-label={t("userManagedAccess")}
               />
             )}
@@ -218,17 +229,21 @@ export const RealmSettingsGeneralTab = ({
             fieldId="kc-user-profile-enabled"
           >
             <Controller
-              name={convertAttributeNameToForm("attributes.userProfileEnabled")}
+              name={
+                convertAttributeNameToForm(
+                  "attributes.userProfileEnabled"
+                ) as any
+              }
               control={control}
-              defaultValue={false}
-              render={({ onChange, value }) => (
+              defaultValue="false"
+              render={({ field }) => (
                 <Switch
                   id="kc-user-profile-enabled"
                   data-testid="user-profile-enabled-switch"
                   label={t("common:on")}
                   labelOff={t("common:off")}
-                  isChecked={value === "true"}
-                  onChange={(value) => onChange(value.toString())}
+                  isChecked={field.value === "true"}
+                  onChange={(value) => field.onChange(value.toString())}
                   aria-label={t("userProfileEnabled")}
                 />
               )}

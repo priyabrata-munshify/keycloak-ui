@@ -3,8 +3,7 @@ import { wrappable } from "@patternfly/react-table";
 import type ClientInitialAccessPresentation from "@keycloak/keycloak-admin-client/lib/defs/clientInitialAccessPresentation";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom-v5-compat";
-import { useNavigate } from "react-router-dom-v5-compat";
+import { Link, useNavigate } from "react-router-dom";
 import { useAlerts } from "../../components/alert/Alerts";
 import { useConfirmDialog } from "../../components/confirm-dialog/ConfirmDialog";
 import { ListEmptyState } from "../../components/list-empty-state/ListEmptyState";
@@ -36,7 +35,7 @@ export const InitialAccessTokenList = () => {
 
   const [toggleDeleteDialog, DeleteConfirm] = useConfirmDialog({
     titleKey: "clients:tokenDeleteConfirmTitle",
-    messageKey: t("tokenDeleteConfirm", token),
+    messageKey: t("tokenDeleteConfirm", { id: token?.id }),
     continueButtonLabel: "common:delete",
     continueButtonVariant: ButtonVariant.danger,
     onConfirm: async () => {
@@ -48,7 +47,7 @@ export const InitialAccessTokenList = () => {
         addAlert(t("tokenDeleteSuccess"), AlertVariant.success);
         setToken(undefined);
       } catch (error) {
-        addError("tokenDeleteError", error);
+        addError("clients:tokenDeleteError", error);
       }
     },
   });

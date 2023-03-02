@@ -1,14 +1,16 @@
-import { useTranslation } from "react-i18next";
-import { Button, Modal, ModalVariant } from "@patternfly/react-core";
+import ComponentRepresentation from "@keycloak/keycloak-admin-client/lib/defs/componentRepresentation";
+import type ComponentTypeRepresentation from "@keycloak/keycloak-admin-client/lib/defs/componentTypeRepresentation";
+import { Button, Form, Modal, ModalVariant } from "@patternfly/react-core";
 import { FormProvider, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
+
 import { DynamicComponents } from "../../../components/dynamic/DynamicComponents";
-import type { Validator } from "./Validators";
 
 export type AddValidatorRoleDialogProps = {
   open: boolean;
   toggleDialog: () => void;
-  onConfirm: (newValidator: Validator) => void;
-  selected: Validator;
+  onConfirm: (newValidator: ComponentRepresentation) => void;
+  selected: ComponentTypeRepresentation;
 };
 
 export const AddValidatorRoleDialog = ({
@@ -18,12 +20,12 @@ export const AddValidatorRoleDialog = ({
   selected,
 }: AddValidatorRoleDialogProps) => {
   const { t } = useTranslation("realm-settings");
-  const form = useForm();
+  const form = useForm<ComponentTypeRepresentation>();
   const { handleSubmit } = form;
   const selectedRoleValidator = selected;
 
-  const save = (newValidator: Validator) => {
-    onConfirm({ ...newValidator, name: selected.name });
+  const save = (newValidator: ComponentTypeRepresentation) => {
+    onConfirm({ ...newValidator, id: selected.id });
     toggleDialog();
   };
 
@@ -31,9 +33,9 @@ export const AddValidatorRoleDialog = ({
     <Modal
       variant={ModalVariant.small}
       title={t("addValidatorRole", {
-        validatorName: selectedRoleValidator.name,
+        validatorName: selectedRoleValidator.id,
       })}
-      description={selectedRoleValidator.description}
+      description={selectedRoleValidator.helpText}
       isOpen={open}
       onClose={toggleDialog}
       actions={[
@@ -55,9 +57,11 @@ export const AddValidatorRoleDialog = ({
         </Button>,
       ]}
     >
-      <FormProvider {...form}>
-        <DynamicComponents properties={selectedRoleValidator.config!} />
-      </FormProvider>
+      <Form>
+        <FormProvider {...form}>
+          <DynamicComponents properties={selectedRoleValidator.properties} />
+        </FormProvider>
+      </Form>
     </Modal>
   );
 };

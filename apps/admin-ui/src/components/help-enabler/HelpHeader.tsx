@@ -9,12 +9,13 @@ import {
   TextContent,
 } from "@patternfly/react-core";
 import { ExternalLinkAltIcon, HelpIcon } from "@patternfly/react-icons";
-import { FunctionComponent, useState } from "react";
+import { PropsWithChildren, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import helpUrls from "../../help-urls";
 import { createNamedContext } from "../../utils/createNamedContext";
 import useRequiredContext from "../../utils/useRequiredContext";
-import helpUrls from "../../help-urls";
+import { useStoredState } from "../../utils/useStoredState";
 
 import "./help-header.css";
 
@@ -30,12 +31,13 @@ export const HelpContext = createNamedContext<HelpContextProps | undefined>(
 
 export const useHelp = () => useRequiredContext(HelpContext);
 
-export const Help: FunctionComponent = ({ children }) => {
-  const [enabled, setHelp] = useState(true);
+export const Help = ({ children }: PropsWithChildren) => {
+  const [enabled, setHelp] = useStoredState(localStorage, "helpEnabled", true);
 
   function toggleHelp() {
-    setHelp((help) => !help);
+    setHelp(!enabled);
   }
+
   return (
     <HelpContext.Provider value={{ enabled, toggleHelp }}>
       {children}

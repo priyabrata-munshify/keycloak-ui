@@ -30,6 +30,7 @@
   "attributeConsumingServiceName": "Name of the Attribute Consuming Service profile to advertise in the SP metadata.",
   "forwardParameters": "Non OpenID Connect/OAuth standard query parameters to be forwarded to external IDP from the initial application request to Authorization Endpoint. Multiple parameters can be entered, separated by comma (,).",
   "clientAuthentication": "The client authentication method (cfr. https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication). In case of JWT signed with private key, the realm private key is used.",
+  "clientAssertionSigningAlg": "Signature algorithm to create JWT assertion as client authentication. In the case of JWT signed with private key or Client secret as jwt, it is required. If no algorithm is specified, the following algorithm is adapted. RS256 is adapted in the case of JWT signed with private key. HS256 is adapted in the case of Client secret as jwt.",
   "storeTokens": "Enable/disable if tokens must be stored after authenticating users.",
   "storedTokensReadable": "Enable/disable if new users can read any stored tokens. This assigns the broker.read-token role.",
   "trustEmail": "If enabled, email provided by this provider is not verified even if verification is enabled for the realm.",
@@ -52,7 +53,8 @@
   "httpPostBindingAuthnRequest": "Indicates whether the AuthnRequest must be sent using HTTP-POST binding. If false, HTTP-REDIRECT binding will be used.",
   "httpPostBindingLogout": "Indicates whether to respond to requests using HTTP-POST binding. If false, HTTP-REDIRECT binding will be used.",
   "wantAuthnRequestsSigned": "Indicates whether the identity provider expects a signed AuthnRequest.",
-  "signatureAlgorithm": "The signature algorithm to use to sign documents.",
+  "signatureAlgorithm": "The signature algorithm to use to sign documents. Note that 'SHA1' based algorithms are deprecated and can be removed in the future. It is recommended to stick to some more secure algorithm instead of '*_SHA1'",
+  "encryptionAlgorithm": "Encryption algorithm, which is used by SAML IDP for encryption of SAML documents, assertions or IDs. The corresponding decryption key for decrypt SAML document parts will be chosen based on this configured algorithm and should be available in realm keys for the encryption (ENC) usage. If algorithm is not configured, then any supported algorithm is allowed and decryption key will be chosen based on the algorithm configured in SAML document itself.",
   "samlSignatureKeyName": "Signed SAML documents contain identification of signing key in KeyName element. For Keycloak / RH-SSO counter-party, use KEY_ID, for MS AD FS use CERT_SUBJECT, for others check and use NONE if no other option works.",
   "wantAssertionsSigned": "Indicates whether this service provider expects a signed Assertion.",
   "wantAssertionsEncrypted": "Indicates whether this service provider expects an encrypted Assertion.",
@@ -98,7 +100,7 @@
     "fetchedFields": "Provide additional fields which would be fetched using the profile request. This will be appended to the default set of 'id,name,email,first_name,last_name'."
   },
   "google": {
-    "hostedDomain": "Set 'hd' query parameter when logging in with Google. Google will list accounts only for this domain. Keycloak validates that the returned identity token has a claim for this domain. When '*' is entered, any hosted account can be used.",
+    "hostedDomain": "Set 'hd' query parameter when logging in with Google. Google will list accounts only for this domain. Keycloak validates that the returned identity token has a claim for this domain. When '*' is entered, any hosted account can be used. Comma ',' separated list of domains is supported.",
     "userIp": "Set 'userIp' query parameter when invoking on Google's User Info service.  This will use the user's ip address.  Useful if Google is throttling access to the User Info service.",
     "offlineAccess": "Set 'access_type' query parameter to 'offline' when redirecting to google authorization endpoint, to get a refresh token back. Useful if planning to use Token Exchange to retrieve Google token to access Google APIs when the user is not at the browser."
   },
@@ -110,5 +112,8 @@
   },
   "stackoverflow": {
     "key": "The Key obtained from Stack Overflow client registration."
+  },
+  "linkedin": {
+    "profileProjection": "Projection parameter for profile request. Leave empty for default projection."
   }
 }

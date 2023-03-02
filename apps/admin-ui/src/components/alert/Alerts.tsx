@@ -1,12 +1,14 @@
-import { FunctionComponent, useState } from "react";
-import { useTranslation } from "react-i18next";
+import { NetworkError } from "@keycloak/keycloak-admin-client";
 import { AlertVariant } from "@patternfly/react-core";
-import axios from "axios";
-import type { AxiosError } from "axios";
+import { PropsWithChildren, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { createNamedContext } from "../../utils/createNamedContext";
 import useRequiredContext from "../../utils/useRequiredContext";
+import useSetTimeout from "../../utils/useSetTimeout";
 import { AlertPanel } from "./AlertPanel";
+
+const ALERT_TIMEOUT = 8000;
 
 export type AddAlertFunction = (
   message: string,
@@ -14,9 +16,9 @@ export type AddAlertFunction = (
   description?: string
 ) => void;
 
-export type AddErrorFunction = (message: string, error: any) => void;
+export type AddErrorFunction = (message: string, error: unknown) => void;
 
-type AlertProps = {
+export type AlertProps = {
   addAlert: AddAlertFunction;
   addError: AddErrorFunction;
 };
@@ -28,74 +30,79 @@ export const AlertContext = createNamedContext<AlertProps | undefined>(
 
 export const useAlerts = () => useRequiredContext(AlertContext);
 
-export type AlertType = {
-  id: number;
+export type AlertEntry = {
+  id: string;
   message: string;
   variant: AlertVariant;
   description?: string;
 };
 
-export const AlertProvider: FunctionComponent = ({ children }) => {
+export const AlertProvider = ({ children }: PropsWithChildren) => {
   const { t } = useTranslation();
-  const [alerts, setAlerts] = useState<AlertType[]>([]);
+  const setTimeout = useSetTimeout();
+  const [alerts, setAlerts] = useState<AlertEntry[]>([]);
 
-  const hideAlert = (id: number) => {
+  const removeAlert = (id: string) =>
     setAlerts((alerts) => alerts.filter((alert) => alert.id !== id));
-  };
 
-  const addAlert = (
-    message: string,
-    variant: AlertVariant = AlertVariant.success,
-    description?: string
-  ) => {
-    setAlerts([
-      {
-        id: Math.random(),
+  const addAlert = useCallback<AddAlertFunction>(
+    (message, variant = AlertVariant.success, description) => {
+      const alert: AlertEntry = {
+        id: crypto.randomUUID(),
         message,
         variant,
         description,
-      },
-      ...alerts,
-    ]);
-  };
+      };
 
-  const addError = (message: string, error: Error | AxiosError | string) => {
+      setAlerts((alerts) => [alert, ...alerts]);
+      setTimeout(() => removeAlert(alert.id), ALERT_TIMEOUT);
+    },
+    []
+  );
+
+  const addError = useCallback<AddErrorFunction>((message, error) => {
     addAlert(
       t(message, {
         error: getErrorMessage(error),
       }),
       AlertVariant.danger
     );
-  };
+  }, []);
+
+  const value = useMemo(() => ({ addAlert, addError }), []);
 
   return (
-    <AlertContext.Provider value={{ addAlert, addError }}>
-      <AlertPanel alerts={alerts} onCloseAlert={hideAlert} />
+    <AlertContext.Provider value={value}>
+      <AlertPanel alerts={alerts} onCloseAlert={removeAlert} />
       {children}
     </AlertContext.Provider>
   );
 };
 
-function getErrorMessage(
-  error: Error | AxiosError<Record<string, unknown>> | string
-) {
+function getErrorMessage(error: unknown) {
   if (typeof error === "string") {
     return error;
   }
 
-  if (!axios.isAxiosError(error)) {
+  if (error instanceof NetworkError) {
+    return getNetworkErrorMessage(error);
+  }
+
+  if (error instanceof Error) {
     return error.message;
   }
 
-  const responseData = (error.response?.data ?? {}) as Record<string, unknown>;
+  throw new Error("Unable to determine error message.");
+}
+
+function getNetworkErrorMessage({ responseData }: NetworkError) {
+  const data = responseData as Record<string, unknown>;
 
   for (const key of ["error_description", "errorMessage", "error"]) {
-    const value = responseData[key];
+    const value = data[key];
 
     if (typeof value === "string") {
       return value;
     }
   }
-
-  return error.message;
 }

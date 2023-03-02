@@ -1,14 +1,15 @@
 import { keycloakBefore } from "../support/util/keycloak_hooks";
 import adminClient from "../support/util/AdminClient";
 import LoginPage from "../support/pages/LoginPage";
-import ListingPage from "../support/pages/admin_console/ListingPage";
-import Masthead from "../support/pages/admin_console/Masthead";
-import SidebarPage from "../support/pages/admin_console/SidebarPage";
-import AuthorizationTab from "../support/pages/admin_console/manage/clients/client_details/tabs/AuthorizationTab";
+import ListingPage from "../support/pages/admin-ui/ListingPage";
+import Masthead from "../support/pages/admin-ui/Masthead";
+import SidebarPage from "../support/pages/admin-ui/SidebarPage";
+import AuthorizationTab from "../support/pages/admin-ui/manage/clients/client_details/tabs/AuthorizationTab";
 import ModalUtils from "../support/util/ModalUtils";
-import ClientDetailsPage from "../support/pages/admin_console/manage/clients/client_details/ClientDetailsPage";
-import PoliciesTab from "../support/pages/admin_console/manage/clients/client_details/tabs/authorization_subtabs/PoliciesTab";
-import PermissionsTab from "../support/pages/admin_console/manage/clients/client_details/tabs/authorization_subtabs/PermissionsTab";
+import ClientDetailsPage from "../support/pages/admin-ui/manage/clients/client_details/ClientDetailsPage";
+import PoliciesTab from "../support/pages/admin-ui/manage/clients/client_details/tabs/authorization_subtabs/PoliciesTab";
+import PermissionsTab from "../support/pages/admin-ui/manage/clients/client_details/tabs/authorization_subtabs/PermissionsTab";
+import CreateResourcePage from "../support/pages/admin-ui/manage/clients/client_details/CreateResourcePage";
 
 describe("Client authentication subtab", () => {
   const loginPage = new LoginPage();
@@ -19,30 +20,29 @@ describe("Client authentication subtab", () => {
   const clientDetailsPage = new ClientDetailsPage();
   const policiesSubTab = new PoliciesTab();
   const permissionsSubTab = new PermissionsTab();
-  const clientId =
-    "client-authentication-" + (Math.random() + 1).toString(36).substring(7);
+  const clientId = "client-authentication-" + crypto.randomUUID();
 
-  before(() => {
-    keycloakBefore();
-    loginPage.logIn();
-    sidebarPage.goToClients();
-    listingPage.searchItem(clientId).goToItemDetails(clientId);
-    clientDetailsPage.goToAuthorizationTab();
-
-    cy.wrap(
-      adminClient.createClient({
-        protocol: "openid-connect",
-        clientId,
-        publicClient: false,
-        authorizationServicesEnabled: true,
-        serviceAccountsEnabled: true,
-        standardFlowEnabled: true,
-      })
-    );
-  });
+  before(() =>
+    adminClient.createClient({
+      protocol: "openid-connect",
+      clientId,
+      publicClient: false,
+      authorizationServicesEnabled: true,
+      serviceAccountsEnabled: true,
+      standardFlowEnabled: true,
+    })
+  );
 
   after(() => {
     adminClient.deleteClient(clientId);
+  });
+
+  beforeEach(() => {
+    loginPage.logIn();
+    keycloakBefore();
+    sidebarPage.goToClients();
+    listingPage.searchItem(clientId).goToItemDetails(clientId);
+    clientDetailsPage.goToAuthorizationTab();
   });
 
   it("Should update the resource server settings", () => {
@@ -64,6 +64,22 @@ describe("Client authentication subtab", () => {
       .formUtils()
       .save();
     masthead.checkNotificationMessage("Resource created successfully", true);
+    sidebarPage.waitForPageLoad();
+    authenticationTab.formUtils().cancel();
+  });
+
+  it("Edit a resource", () => {
+    authenticationTab.goToResourcesSubTab();
+    listingPage.goToItemDetails("Resource");
+
+    new CreateResourcePage()
+      .fillResourceForm({
+        displayName: "updated",
+      })
+      .formUtils()
+      .save();
+
+    masthead.checkNotificationMessage("Resource successfully updated");
     sidebarPage.waitForPageLoad();
     authenticationTab.formUtils().cancel();
   });
@@ -157,9 +173,6 @@ describe("Client authentication subtab", () => {
       "Successfully created the permission",
       true
     );
-    cy.wait(["@load"]);
-
-    sidebarPage.waitForPageLoad();
     authenticationTab.formUtils().cancel();
   });
 

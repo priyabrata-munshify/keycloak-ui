@@ -1,7 +1,7 @@
-import SidebarPage from "../support/pages/admin_console/SidebarPage";
+import SidebarPage from "../support/pages/admin-ui/SidebarPage";
 import LoginPage from "../support/pages/LoginPage";
-import RealmSettingsPage from "../support/pages/admin_console/manage/realm_settings/RealmSettingsPage";
-import Masthead from "../support/pages/admin_console/Masthead";
+import RealmSettingsPage from "../support/pages/admin-ui/manage/realm_settings/RealmSettingsPage";
+import Masthead from "../support/pages/admin-ui/Masthead";
 import { keycloakBefore } from "../support/util/keycloak_hooks";
 import adminClient from "../support/util/AdminClient";
 
@@ -11,11 +11,11 @@ const masthead = new Masthead();
 const realmSettingsPage = new RealmSettingsPage();
 
 describe("Realm settings tabs tests", () => {
-  const realmName = "Realm_" + (Math.random() + 1).toString(36).substring(7);
+  const realmName = "Realm_" + crypto.randomUUID();
 
   beforeEach(() => {
-    keycloakBefore();
     loginPage.logIn();
+    keycloakBefore();
     sidebarPage.goToRealm(realmName);
   });
 
@@ -78,22 +78,39 @@ describe("Realm settings tabs tests", () => {
   });
 
   it("Go to email tab", () => {
-    const msg: string = "Error! Failed to send email.";
+    // Configure an e-mail address so we can test the connection settings.
+    cy.wrap(null).then(async () => {
+      const adminUser = await adminClient.getAdminUser();
+
+      await adminClient.updateUser(adminUser.id!, {
+        email: "admin@example.com",
+      });
+    });
+
     sidebarPage.goToRealmSettings();
     cy.findByTestId("rs-email-tab").click();
+    //required fields not filled in or not filled properly
+    realmSettingsPage.addSenderEmail("not a valid email");
+    realmSettingsPage.fillFromDisplayName("displayName");
+    realmSettingsPage.fillReplyToEmail("replyTo@email.com");
+    realmSettingsPage.fillPort("10");
+    cy.findByTestId("email-tab-save").click();
+    cy.get("#kc-display-name-helper").contains("You must enter a valid email.");
+    cy.get("#kc-host-helper").contains("Required field");
+
+    cy.findByTestId("email-tab-revert").click();
+    cy.findByTestId("sender-email-address").should("be.empty");
+    cy.findByTestId("from-display-name").should("be.empty");
+    cy.get("#kc-port").should("be.empty");
+
     realmSettingsPage.addSenderEmail("example@example.com");
     realmSettingsPage.toggleCheck(realmSettingsPage.enableSslCheck);
     realmSettingsPage.toggleCheck(realmSettingsPage.enableStartTlsCheck);
     realmSettingsPage.fillHostField("localhost");
-    cy.intercept(`/admin/realms/${realmName}/users/*`).as("load");
-    cy.findByTestId(realmSettingsPage.testConnectionButton).click();
-    cy.wait("@load");
 
-    realmSettingsPage.fillEmailField(
-      "example" + (Math.random() + 1).toString(36).substring(7) + "@example.com"
-    );
-    cy.findByTestId(realmSettingsPage.modalTestConnectionButton).click();
-    masthead.checkNotificationMessage(msg, true);
+    cy.findByTestId(realmSettingsPage.testConnectionButton).click();
+
+    masthead.checkNotificationMessage("Error! Failed to send email", true);
   });
 
   it("Go to themes tab", () => {

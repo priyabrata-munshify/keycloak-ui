@@ -1,8 +1,8 @@
 import LoginPage from "../support/pages/LoginPage";
-import SidebarPage from "../support/pages/admin_console/SidebarPage";
-import ListingPage from "../support/pages/admin_console/ListingPage";
-import ProviderPage from "../support/pages/admin_console/manage/providers/ProviderPage";
-import Masthead from "../support/pages/admin_console/Masthead";
+import SidebarPage from "../support/pages/admin-ui/SidebarPage";
+import ListingPage from "../support/pages/admin-ui/ListingPage";
+import ProviderPage from "../support/pages/admin-ui/manage/providers/ProviderPage";
+import Masthead from "../support/pages/admin-ui/Masthead";
 import ModalUtils from "../support/util/ModalUtils";
 import { keycloakBefore } from "../support/util/keycloak_hooks";
 
@@ -21,12 +21,12 @@ const ldapName = "ldap-mappers-testing";
 const ldapVendor = "Active Directory";
 
 // connection and authentication settings
-const connectionUrlValid = "ldap://ldap.forumsys.com:389";
+const connectionUrlValid = "ldap://localhost:3004";
 const bindTypeSimple = "simple";
 const truststoreSpiOnlyLdaps = "Only for ldaps";
 const connectionTimeoutTwoSecs = "2000";
-const bindDnCnDc = "cn=read-only-admin,dc=example,dc=com";
-const bindCredsValid = "password";
+const bindDnCnDc = "cn=user,dc=test";
+const bindCredsValid = "user";
 
 // ldap searching and updating
 const editModeReadOnly = "READ_ONLY";
@@ -77,8 +77,8 @@ const MsadAccountControlsMapper = "MSAD account controls";
 
 describe("User Fed LDAP mapper tests", () => {
   beforeEach(() => {
-    keycloakBefore();
     loginPage.logIn();
+    keycloakBefore();
     sidebarPage.goToUserFederation();
   });
 

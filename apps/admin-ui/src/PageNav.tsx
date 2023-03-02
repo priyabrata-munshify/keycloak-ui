@@ -1,29 +1,62 @@
-import { FormEvent, FunctionComponent } from "react";
-import { NavLink, useRouteMatch } from "react-router-dom";
-import { useLocation, useNavigate } from "react-router-dom-v5-compat";
-import { useTranslation } from "react-i18next";
 import {
+  Divider,
   Nav,
-  NavItem,
   NavGroup,
+  NavItem,
   NavList,
   PageSidebar,
-  Divider,
 } from "@patternfly/react-core";
+import { FormEvent } from "react";
+import { useTranslation } from "react-i18next";
+import { NavLink, useMatch, useNavigate } from "react-router-dom";
 
 import { RealmSelector } from "./components/realm-selector/RealmSelector";
-import { useRealm } from "./context/realm-context/RealmContext";
 import { useAccess } from "./context/access/Access";
-import { routes } from "./route-config";
+import { useRealm } from "./context/realm-context/RealmContext";
 import { AddRealmRoute } from "./realm/routes/AddRealm";
+import { routes } from "./route-config";
 
 import "./page-nav.css";
 
-export const PageNav: FunctionComponent = () => {
+type LeftNavProps = { title: string; path: string };
+
+const LeftNav = ({ title, path }: LeftNavProps) => {
   const { t } = useTranslation("common");
-  const { hasAccess, hasSomeAccess } = useAccess();
+  const { hasAccess } = useAccess();
   const { realm } = useRealm();
-  const location = useLocation();
+  const route = routes.find(
+    (route) => route.path.replace(/\/:.+?(\?|(?:(?!\/).)*|$)/g, "") === path
+  );
+
+  const accessAllowed =
+    route &&
+    (route.access instanceof Array
+      ? hasAccess(...route.access)
+      : hasAccess(route.access));
+
+  if (!accessAllowed) {
+    return null;
+  }
+
+  return (
+    <li>
+      <NavLink
+        id={"nav-item" + path.replace("/", "-")}
+        to={`/${realm}${path}`}
+        className={({ isActive }) =>
+          `pf-c-nav__link${isActive ? " pf-m-current" : ""}`
+        }
+      >
+        {t(title)}
+      </NavLink>
+    </li>
+  );
+};
+
+export const PageNav = () => {
+  const { t } = useTranslation("common");
+  const { hasSomeAccess } = useAccess();
+
   const navigate = useNavigate();
 
   type SelectedItem = {
@@ -36,41 +69,6 @@ export const PageNav: FunctionComponent = () => {
   const onSelect = (item: SelectedItem) => {
     navigate(item.to);
     item.event.preventDefault();
-  };
-
-  type LeftNavProps = { title: string; path: string };
-  const LeftNav = ({ title, path }: LeftNavProps) => {
-    const route = routes.find(
-      (route) => route.path.replace(/\/:.+?(\?|(?:(?!\/).)*|$)/g, "") === path
-    );
-
-    const accessAllowed =
-      route &&
-      (route.access instanceof Array
-        ? hasAccess(...route.access)
-        : hasAccess(route.access));
-
-    if (!accessAllowed) {
-      return null;
-    }
-
-    //remove "/realm-name" from the start of the path
-    const activeItem = location.pathname.substring(realm.length + 1);
-    return (
-      <li>
-        <NavLink
-          id={"nav-item" + path.replace("/", "-")}
-          to={`/${realm}${path}`}
-          className="pf-c-nav__link"
-          activeClassName="pf-m-current"
-          isActive={() =>
-            path === activeItem || (path !== "/" && activeItem.startsWith(path))
-          }
-        >
-          {t(title)}
-        </NavLink>
-      </li>
-    );
   };
 
   const showManage = hasSomeAccess(
@@ -87,7 +85,7 @@ export const PageNav: FunctionComponent = () => {
     "view-identity-providers"
   );
 
-  const isOnAddRealm = !!useRouteMatch(AddRealmRoute.path);
+  const isOnAddRealm = !!useMatch(AddRealmRoute.path);
 
   return (
     <PageSidebar

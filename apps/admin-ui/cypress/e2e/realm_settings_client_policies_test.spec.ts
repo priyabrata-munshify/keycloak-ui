@@ -1,10 +1,10 @@
-import SidebarPage from "../support/pages/admin_console/SidebarPage";
+import SidebarPage from "../support/pages/admin-ui/SidebarPage";
 import LoginPage from "../support/pages/LoginPage";
-import RealmSettingsPage from "../support/pages/admin_console/manage/realm_settings/RealmSettingsPage";
+import RealmSettingsPage from "../support/pages/admin-ui/manage/realm_settings/RealmSettingsPage";
 import { keycloakBefore } from "../support/util/keycloak_hooks";
 import adminClient from "../support/util/AdminClient";
 import ModalUtils from "../support/util/ModalUtils";
-import Masthead from "../support/pages/admin_console/Masthead";
+import Masthead from "../support/pages/admin-ui/Masthead";
 
 const loginPage = new LoginPage();
 const sidebarPage = new SidebarPage();
@@ -12,10 +12,12 @@ const modalUtils = new ModalUtils();
 const masthead = new Masthead();
 
 describe("Realm settings client policies tab tests", () => {
-  const realmName = "Realm_" + (Math.random() + 1).toString(36).substring(7);
+  const realmName = "Realm_" + crypto.randomUUID();
   const realmSettingsPage = new RealmSettingsPage(realmName);
 
   beforeEach(() => {
+    loginPage.logIn();
+    keycloakBefore();
     sidebarPage
       .waitForPageLoad()
       .goToRealm(realmName)
@@ -24,11 +26,7 @@ describe("Realm settings client policies tab tests", () => {
     realmSettingsPage.goToClientPoliciesTab().goToClientPoliciesList();
   });
 
-  before(() => {
-    keycloakBefore();
-    adminClient.createRealm(realmName);
-    loginPage.logIn();
-  });
+  before(() => adminClient.createRealm(realmName));
 
   after(() => {
     adminClient.deleteRealm(realmName);
@@ -147,13 +145,11 @@ describe("Realm settings client policies tab tests", () => {
 
     realmSettingsPage.createNewClientPolicyFromList(
       "Test",
-      "Test Again Description"
+      "Test Again Description",
+      true
     );
-    cy.wait("@save");
 
-    // TODO: UNCOMMENT WHEN THE ISSUE 2050 IS FIXED
-    //realmSettingsPage.checkAlertMessage("Could not create client policy: 'proposed client policy name duplicated.'");
-
+    realmSettingsPage.shouldShowErrorWhenDuplicate();
     sidebarPage.goToRealmSettings();
 
     realmSettingsPage
@@ -174,10 +170,9 @@ describe("Realm settings client policies tab tests", () => {
       "Test again",
       "Test Again Description"
     );
-    masthead.checkNotificationMessage("New policy created", true);
+    masthead.checkNotificationMessage("New policy created");
     sidebarPage.waitForPageLoad();
     cy.wait("@save");
-    masthead.closeAllAlertMessages();
     realmSettingsPage.deleteClientPolicyFromDetails();
     modalUtils.confirmModal();
     masthead.checkNotificationMessage("Client policy deleted");

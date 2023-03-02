@@ -1,33 +1,35 @@
-import { Fragment, useState } from "react";
-import FileSaver from "file-saver";
-import { useTranslation } from "react-i18next";
-import { Controller, useFormContext } from "react-hook-form";
 import {
-  CardBody,
-  PageSection,
-  TextContent,
-  Text,
-  FormGroup,
-  Switch,
-  Card,
-  Form,
   ActionGroup,
-  Button,
   AlertVariant,
+  Button,
+  Card,
+  CardBody,
+  Form,
+  FormGroup,
+  PageSection,
+  Switch,
+  Text,
+  TextContent,
 } from "@patternfly/react-core";
+import { saveAs } from "file-saver";
+import { Fragment, useState } from "react";
+import { Controller, useFormContext } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 
-import type ClientRepresentation from "@keycloak/keycloak-admin-client/lib/defs/clientRepresentation";
 import type CertificateRepresentation from "@keycloak/keycloak-admin-client/lib/defs/certificateRepresentation";
-import { useAdminClient, useFetch } from "../../context/auth/AdminClient";
+import { useAlerts } from "../../components/alert/Alerts";
+import { useConfirmDialog } from "../../components/confirm-dialog/ConfirmDialog";
 import { FormAccess } from "../../components/form-access/FormAccess";
 import { HelpItem } from "../../components/help-enabler/HelpItem";
-import { SamlKeysDialog } from "./SamlKeysDialog";
 import { FormPanel } from "../../components/scroll-form/FormPanel";
-import { Certificate } from "./Certificate";
-import { useConfirmDialog } from "../../components/confirm-dialog/ConfirmDialog";
-import { useAlerts } from "../../components/alert/Alerts";
-import { SamlImportKeyDialog } from "./SamlImportKeyDialog";
+import { useAdminClient, useFetch } from "../../context/auth/AdminClient";
 import { convertAttributeNameToForm } from "../../util";
+import useToggle from "../../utils/useToggle";
+import { FormFields } from "../ClientDetails";
+import { Certificate } from "./Certificate";
+import { ExportSamlKeyDialog } from "./ExportSamlKeyDialog";
+import { SamlImportKeyDialog } from "./SamlImportKeyDialog";
+import { SamlKeysDialog } from "./SamlKeysDialog";
 
 type SamlKeysProps = {
   clientId: string;
@@ -35,7 +37,7 @@ type SamlKeysProps = {
 };
 
 const KEYS = ["saml.signing", "saml.encryption"] as const;
-export type KeyTypes = typeof KEYS[number];
+export type KeyTypes = (typeof KEYS)[number];
 
 const KEYS_MAPPING: { [key in KeyTypes]: { [index: string]: string } } = {
   "saml.signing": {
@@ -51,6 +53,7 @@ const KEYS_MAPPING: { [key in KeyTypes]: { [index: string]: string } } = {
 };
 
 type KeySectionProps = {
+  clientId: string;
   keyInfo?: CertificateRepresentation;
   attr: KeyTypes;
   onChanged: (key: KeyTypes) => void;
@@ -59,6 +62,7 @@ type KeySectionProps = {
 };
 
 const KeySection = ({
+  clientId,
   keyInfo,
   attr,
   onChanged,
@@ -66,14 +70,19 @@ const KeySection = ({
   onImport,
 }: KeySectionProps) => {
   const { t } = useTranslation("clients");
-  const { control, watch } = useFormContext<ClientRepresentation>();
+  const { control, watch } = useFormContext<FormFields>();
   const title = KEYS_MAPPING[attr].title;
   const key = KEYS_MAPPING[attr].key;
   const name = KEYS_MAPPING[attr].name;
 
-  const section = watch(name);
+  const [showImportDialog, toggleImportDialog] = useToggle();
+
+  const section = watch(name as keyof FormFields);
   return (
     <>
+      {showImportDialog && (
+        <ExportSamlKeyDialog clientId={clientId} close={toggleImportDialog} />
+      )}
       <FormPanel title={t(title)} className="kc-form-panel__panel">
         <TextContent className="pf-u-pb-lg">
           <Text>{t(`${title}Explain`)}</Text>
@@ -91,21 +100,21 @@ const KeySection = ({
             hasNoPaddingTop
           >
             <Controller
-              name={name}
+              name={name as keyof FormFields}
               control={control}
               defaultValue="false"
-              render={({ onChange, value }) => (
+              render={({ field }) => (
                 <Switch
                   data-testid={key}
                   id={key}
                   label={t("common:on")}
                   labelOff={t("common:off")}
-                  isChecked={value === "true"}
+                  isChecked={field.value === "true"}
                   onChange={(value) => {
                     const v = value.toString();
                     if (v === "true") {
                       onChanged(attr);
-                      onChange(v);
+                      field.onChange(v);
                     } else {
                       onGenerate(attr, false);
                     }
@@ -132,7 +141,9 @@ const KeySection = ({
                 <Button variant="secondary" onClick={() => onImport(attr)}>
                   {t("importKey")}
                 </Button>
-                <Button variant="tertiary">{t("common:export")}</Button>
+                <Button variant="tertiary" onClick={toggleImportDialog}>
+                  {t("common:export")}
+                </Button>
               </ActionGroup>
             </Form>
           </CardBody>
@@ -147,7 +158,7 @@ export const SamlKeys = ({ clientId, save }: SamlKeysProps) => {
   const [isChanged, setIsChanged] = useState<KeyTypes>();
   const [keyInfo, setKeyInfo] = useState<CertificateRepresentation[]>();
   const [selectedType, setSelectedType] = useState<KeyTypes>();
-  const [openImport, setImportOpen] = useState(false);
+  const [openImport, setImportOpen] = useState<KeyTypes>();
   const [refresh, setRefresh] = useState(0);
 
   const { setValue } = useFormContext();
@@ -176,7 +187,7 @@ export const SamlKeys = ({ clientId, save }: SamlKeysProps) => {
       });
 
       setKeyInfo(info);
-      FileSaver.saveAs(
+      saveAs(
         new Blob([info[index].privateKey!], {
           type: "application/octet-stream",
         }),
@@ -236,14 +247,15 @@ export const SamlKeys = ({ clientId, save }: SamlKeysProps) => {
       <ReGenerateConfirm />
       {KEYS.map((attr, index) => (
         <Fragment key={attr}>
-          {openImport && (
+          {openImport === attr && (
             <SamlImportKeyDialog
               id={clientId}
               attr={attr}
-              onClose={() => setImportOpen(false)}
+              onClose={() => setImportOpen(undefined)}
             />
           )}
           <KeySection
+            clientId={clientId}
             keyInfo={keyInfo?.[index]}
             attr={attr}
             onChanged={setIsChanged}
@@ -255,7 +267,7 @@ export const SamlKeys = ({ clientId, save }: SamlKeysProps) => {
                 toggleReGenerateDialog();
               }
             }}
-            onImport={() => setImportOpen(true)}
+            onImport={() => setImportOpen(attr)}
           />
         </Fragment>
       ))}

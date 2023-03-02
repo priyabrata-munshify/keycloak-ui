@@ -1,4 +1,6 @@
-import { useState } from "react";
+import type { ConfigPropertyRepresentation } from "@keycloak/keycloak-admin-client/lib/defs/authenticatorConfigInfoRepresentation";
+import type ClientProfileRepresentation from "@keycloak/keycloak-admin-client/lib/defs/clientProfileRepresentation";
+import type ComponentTypeRepresentation from "@keycloak/keycloak-admin-client/lib/defs/componentTypeRepresentation";
 import {
   ActionGroup,
   AlertVariant,
@@ -9,21 +11,20 @@ import {
   SelectOption,
   SelectVariant,
 } from "@patternfly/react-core";
-import { useTranslation } from "react-i18next";
-import { FormAccess } from "../components/form-access/FormAccess";
-import { ViewHeader } from "../components/view-header/ViewHeader";
-import { useAlerts } from "../components/alert/Alerts";
-import { useServerInfo } from "../context/server-info/ServerInfoProvider";
+import { useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
-import { HelpItem } from "../components/help-enabler/HelpItem";
-import { useParams } from "react-router-dom";
-import { Link, useNavigate } from "react-router-dom-v5-compat";
-import { useAdminClient, useFetch } from "../context/auth/AdminClient";
-import type ComponentTypeRepresentation from "@keycloak/keycloak-admin-client/lib/defs/componentTypeRepresentation";
-import type { ConfigPropertyRepresentation } from "@keycloak/keycloak-admin-client/lib/defs/authenticatorConfigInfoRepresentation";
-import type ClientProfileRepresentation from "@keycloak/keycloak-admin-client/lib/defs/clientProfileRepresentation";
-import { ClientProfileParams, toClientProfile } from "./routes/ClientProfile";
+import { useTranslation } from "react-i18next";
+import { Link, useNavigate } from "react-router-dom";
+
+import { useAlerts } from "../components/alert/Alerts";
 import { DynamicComponents } from "../components/dynamic/DynamicComponents";
+import { FormAccess } from "../components/form-access/FormAccess";
+import { HelpItem } from "../components/help-enabler/HelpItem";
+import { ViewHeader } from "../components/view-header/ViewHeader";
+import { useAdminClient, useFetch } from "../context/auth/AdminClient";
+import { useServerInfo } from "../context/server-info/ServerInfoProvider";
+import { useParams } from "../utils/useParams";
+import { ClientProfileParams, toClientProfile } from "./routes/ClientProfile";
 import type { ExecutorParams } from "./routes/Executor";
 
 type ExecutorForm = {
@@ -188,7 +189,7 @@ export default function ExecutorForm() {
               name="executor"
               defaultValue=""
               control={control}
-              render={({ value }) => (
+              render={({ field }) => (
                 <Select
                   toggleId="kc-executor"
                   placeholderText="Select an executor"
@@ -204,7 +205,7 @@ export default function ExecutorForm() {
                     );
                     setSelectExecutorTypeOpen(false);
                   }}
-                  selections={editMode ? executorName : value}
+                  selections={editMode ? executorName : field.value}
                   variant={SelectVariant.single}
                   data-testid="executorType-select"
                   aria-label={t("executorType")}
@@ -214,7 +215,7 @@ export default function ExecutorForm() {
                 >
                   {executorTypes?.map((option) => (
                     <SelectOption
-                      selected={option.id === value}
+                      selected={option.id === field.value}
                       key={option.id}
                       value={option.id}
                       description={option.helpText}

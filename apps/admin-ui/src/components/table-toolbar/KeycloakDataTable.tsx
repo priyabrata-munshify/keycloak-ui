@@ -1,3 +1,19 @@
+import { ButtonVariant } from "@patternfly/react-core";
+import type { SVGIconProps } from "@patternfly/react-icons/dist/js/createIcon";
+import {
+  IAction,
+  IActions,
+  IActionsResolver,
+  IFormatter,
+  IRow,
+  ITransform,
+  Table,
+  TableBody,
+  TableHeader,
+  TableProps,
+  TableVariant,
+} from "@patternfly/react-table";
+import { cloneDeep, differenceBy, get } from "lodash-es";
 import {
   ComponentClass,
   isValidElement,
@@ -8,26 +24,12 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  IAction,
-  IActions,
-  IActionsResolver,
-  IFormatter,
-  ITransform,
-  Table,
-  TableBody,
-  TableHeader,
-  TableProps,
-  TableVariant,
-} from "@patternfly/react-table";
-import { get, cloneDeep, differenceBy } from "lodash-es";
 
-import { PaginatingTableToolbar } from "./PaginatingTableToolbar";
-import { ListEmptyState } from "../list-empty-state/ListEmptyState";
-import { KeycloakSpinner } from "../keycloak-spinner/KeycloakSpinner";
 import { useFetch } from "../../context/auth/AdminClient";
-import type { SVGIconProps } from "@patternfly/react-icons/dist/js/createIcon";
-import { ButtonVariant } from "@patternfly/react-core";
+import { useStoredState } from "../../utils/useStoredState";
+import { KeycloakSpinner } from "../keycloak-spinner/KeycloakSpinner";
+import { ListEmptyState } from "../list-empty-state/ListEmptyState";
+import { PaginatingTableToolbar } from "./PaginatingTableToolbar";
 
 type TitleCell = { title: JSX.Element };
 type Cell<T> = keyof T | JSX.Element | TitleCell;
@@ -94,7 +96,7 @@ function DataTable<T>({
       cells={columns.map((column) => {
         return { ...column, title: t(column.displayKey || column.name) };
       })}
-      rows={rows}
+      rows={rows as IRow[]}
       actions={actions}
       actionResolver={actionResolver}
       aria-label={t(ariaLabelKey)}
@@ -110,13 +112,13 @@ export type Field<T> = {
   displayKey?: string;
   cellFormatters?: IFormatter[];
   transforms?: ITransform[];
-  cellRenderer?: (row: T) => ReactNode;
+  cellRenderer?: (row: T) => JSX.Element | string;
 };
 
 export type DetailField<T> = {
   name: string;
   enabled?: (row: T) => boolean;
-  cellRenderer?: (row: T) => ReactNode;
+  cellRenderer?: (row: T) => JSX.Element | string;
 };
 
 export type Action<T> = IAction & {
@@ -174,7 +176,7 @@ export type DataListProps<T> = Omit<
  * @param {Field<T>} props.detailColumns - definition of the columns expandable columns
  * @param {Action[]} props.actions - the actions that appear on the row
  * @param {IActionsResolver} props.actionResolver Resolver for the given action
- * @param {ReactNode} props.toolbarItem - Toolbar items that appear on the top of the table {@link ToolbarItem}
+ * @param {ReactNode} props.toolbarItem - Toolbar items that appear on the top of the table {@link toolbarItem}
  * @param {ReactNode} props.emptyState - ReactNode show when the list is empty could be any component but best to use {@link ListEmptyState}
  */
 export function KeycloakDataTable<T>({
@@ -205,7 +207,13 @@ export function KeycloakDataTable<T>({
   const [unPaginatedData, setUnPaginatedData] = useState<T[]>();
   const [loading, setLoading] = useState(false);
 
-  const [max, setMax] = useState(10);
+  const [defaultPageSize, setDefaultPageSize] = useStoredState(
+    localStorage,
+    "pageSize",
+    10
+  );
+
+  const [max, setMax] = useState(defaultPageSize);
   const [first, setFirst] = useState(0);
   const [search, setSearch] = useState<string>("");
   const prevSearch = useRef<string>();
@@ -216,7 +224,9 @@ export function KeycloakDataTable<T>({
   const renderCell = (columns: (Field<T> | DetailField<T>)[], value: T) => {
     return columns.map((col) => {
       if (col.cellRenderer) {
-        return { title: col.cellRenderer(value) };
+        const Component = col.cellRenderer;
+        //@ts-ignore
+        return { title: <Component {...value} /> };
       }
       return get(value, col.name);
     });
@@ -238,10 +248,12 @@ export function KeycloakDataTable<T>({
             cells: renderCell(columns, value),
           },
         ];
-        if (isDetailColumnsEnabled(value)) {
+        if (detailColumns) {
           row.push({
             parent: index * 2,
-            cells: renderCell(detailColumns!, value),
+            cells: isDetailColumnsEnabled(value)
+              ? renderCell(detailColumns!, value)
+              : [],
           } as SubRow<T>);
         }
         return row;
@@ -259,8 +271,8 @@ export function KeycloakDataTable<T>({
     if (typeof node === "object") {
       return getNodeText(
         isValidElement((node as TitleCell).title)
-          ? (node as TitleCell).title.props?.children
-          : (node as JSX.Element).props?.children
+          ? (node as TitleCell).title.props
+          : Object.values(node)
       );
     }
     return "";
@@ -270,14 +282,16 @@ export function KeycloakDataTable<T>({
     () =>
       search === "" || isPaginated
         ? undefined
-        : convertToColumns(unPaginatedData || []).filter((row) =>
-            row.cells.some(
-              (cell) =>
-                cell &&
-                getNodeText(cell).toLowerCase().includes(search.toLowerCase())
+        : convertToColumns(unPaginatedData || [])
+            .filter((row) =>
+              row.cells.some(
+                (cell) =>
+                  cell &&
+                  getNodeText(cell).toLowerCase().includes(search.toLowerCase())
+              )
             )
-          ),
-    [search]
+            .slice(first, first + max + 1),
+    [search, first, max]
   );
 
   useEffect(() => {
@@ -345,8 +359,6 @@ export function KeycloakDataTable<T>({
       return action;
     });
 
-  const Loading = () => <KeycloakSpinner />;
-
   const _onSelect = (isSelected: boolean, rowIndex: number) => {
     const data = filteredData || rows;
     if (rowIndex === -1) {
@@ -403,6 +415,7 @@ export function KeycloakDataTable<T>({
           onPerPageSelect={(first, max) => {
             setFirst(first);
             setMax(max);
+            setDefaultPageSize(max);
           }}
           inputGroupName={
             searchPlaceholderKey ? `${ariaLabelKey}input` : undefined
@@ -448,7 +461,7 @@ export function KeycloakDataTable<T>({
               }
             />
           )}
-          {loading && <Loading />}
+          {loading && <KeycloakSpinner />}
         </PaginatingTableToolbar>
       )}
       {!loading && noData && !searching && emptyState}

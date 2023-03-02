@@ -1,16 +1,16 @@
 import LoginPage from "../support/pages/LoginPage";
-import SidebarPage from "../support/pages/admin_console/SidebarPage";
+import SidebarPage from "../support/pages/admin-ui/SidebarPage";
 import UserEventsTab, {
   UserEventSearchData,
-} from "../support/pages/admin_console/manage/events/tabs/UserEventsTab";
-import AdminEventsTab from "../support/pages/admin_console/manage/events/tabs/AdminEventsTab";
-import RealmSettingsPage from "../support/pages/admin_console/manage/realm_settings/RealmSettingsPage";
-import Masthead from "../support/pages/admin_console/Masthead";
+} from "../support/pages/admin-ui/manage/events/tabs/UserEventsTab";
+import AdminEventsTab from "../support/pages/admin-ui/manage/events/tabs/AdminEventsTab";
+import RealmSettingsPage from "../support/pages/admin-ui/manage/realm_settings/RealmSettingsPage";
+import Masthead from "../support/pages/admin-ui/Masthead";
 import { keycloakBefore } from "../support/util/keycloak_hooks";
 import EventsPage, {
   EventsTab,
-} from "../support/pages/admin_console/manage/events/EventsPage";
-import ListingPage from "../support/pages/admin_console/ListingPage";
+} from "../support/pages/admin-ui/manage/events/EventsPage";
+import ListingPage from "../support/pages/admin-ui/ListingPage";
 import adminClient from "../support/util/AdminClient";
 
 const loginPage = new LoginPage();
@@ -33,7 +33,7 @@ describe("Events tests", () => {
   const eventsTestUser = {
     eventsTestUserId: "",
     userRepresentation: {
-      username: "events-test",
+      username: "events-test" + crypto.randomUUID(),
       enabled: true,
       credentials: [{ value: "events-test" }],
     },
@@ -53,8 +53,8 @@ describe("Events tests", () => {
 
   describe("User events list", () => {
     beforeEach(() => {
-      keycloakBefore();
       loginPage.logIn();
+      keycloakBefore();
       sidebarPage.goToEvents();
     });
 
@@ -89,8 +89,8 @@ describe("Events tests", () => {
     ];
 
     beforeEach(() => {
-      keycloakBefore();
       loginPage.logIn();
+      keycloakBefore();
       sidebarPage.goToEvents();
     });
 
@@ -106,6 +106,7 @@ describe("Events tests", () => {
 
       masthead.signOut();
       loginPage.logIn();
+      cy.visit("/");
 
       sidebarPage.goToEvents();
       eventsPage.tabUtils().checkIsCurrentTab(EventsTab.UserEvents);
@@ -249,9 +250,15 @@ describe("Events tests", () => {
   });
 
   describe("Admin events list", () => {
+    const realmName = crypto.randomUUID();
+
+    before(() => adminClient.createRealm(realmName));
+    after(() => adminClient.deleteRealm(realmName));
+
     beforeEach(() => {
-      keycloakBefore();
       loginPage.logIn();
+      keycloakBefore();
+      sidebarPage.goToRealm(realmName);
       sidebarPage.goToEvents();
       eventsPage.goToAdminEventsTab();
     });
@@ -274,10 +281,8 @@ describe("Events tests", () => {
         .goToEventsTab()
         .goToAdminEventsSettingsSubTab()
         .disableSaveEvents()
-        .save()
+        .save({ waitForRealm: false, waitForConfig: true })
         .clearAdminEvents();
-
-      cy.wait(5000);
 
       sidebarPage.goToEvents();
       eventsPage.goToAdminEventsTab();
@@ -290,8 +295,8 @@ describe("Events tests", () => {
     const operationTypes = ["UPDATE"];
 
     beforeEach(() => {
-      keycloakBefore();
       loginPage.logIn();
+      keycloakBefore();
       sidebarPage.goToEvents();
       eventsPage.goToAdminEventsTab();
     });
@@ -302,7 +307,7 @@ describe("Events tests", () => {
         .goToEventsTab()
         .goToAdminEventsSettingsSubTab()
         .enableSaveEvents()
-        .save();
+        .save({ waitForRealm: false, waitForConfig: true });
       sidebarPage.goToEvents();
       eventsPage.goToAdminEventsTab();
       adminEventsTab
@@ -363,8 +368,8 @@ describe("Events tests", () => {
 
   describe("Search admin events", () => {
     beforeEach(() => {
-      keycloakBefore();
       loginPage.logIn();
+      keycloakBefore();
       sidebarPage.goToEvents();
       eventsPage.goToAdminEventsTab();
     });
@@ -375,7 +380,7 @@ describe("Events tests", () => {
         .goToEventsTab()
         .goToAdminEventsSettingsSubTab()
         .disableSaveEvents()
-        .save();
+        .save({ waitForRealm: false, waitForConfig: true });
       sidebarPage.goToEvents();
       eventsPage.goToAdminEventsTab();
       adminEventsTab
@@ -415,8 +420,8 @@ describe("Events tests", () => {
 
   describe("Check more button opens auth and representation dialogs", () => {
     beforeEach(() => {
-      keycloakBefore();
       loginPage.logIn();
+      keycloakBefore();
       sidebarPage.goToEvents();
       eventsPage.goToAdminEventsTab();
     });

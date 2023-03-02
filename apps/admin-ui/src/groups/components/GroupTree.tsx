@@ -1,24 +1,33 @@
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom-v5-compat";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
+  Checkbox,
   Dropdown,
   DropdownItem,
   DropdownPosition,
+  DropdownSeparator,
+  InputGroup,
   KebabToggle,
+  Tooltip,
+  TreeView,
   TreeViewDataItem,
 } from "@patternfly/react-core";
 
 import type GroupRepresentation from "@keycloak/keycloak-admin-client/lib/defs/groupRepresentation";
 import { useAdminClient, useFetch } from "../../context/auth/AdminClient";
 import { KeycloakSpinner } from "../../components/keycloak-spinner/KeycloakSpinner";
-import { TableToolbar } from "../../components/table-toolbar/TableToolbar";
 import useToggle from "../../utils/useToggle";
-import { CheckableTreeView } from "./CheckableTreeView";
 import { DeleteGroup } from "./DeleteGroup";
-import { GroupToolbar, ViewType } from "./GroupToolbar";
 import { GroupsModal } from "../GroupsModal";
 import { MoveDialog } from "./MoveDialog";
+import { PaginatingTableToolbar } from "../../components/table-toolbar/PaginatingTableToolbar";
+import { useSubGroups } from "../SubGroupsContext";
+import { fetchAdminUI } from "../../context/auth/admin-ui-endpoint";
+import { useRealm } from "../../context/realm-context/RealmContext";
+import { joinPath } from "../../utils/joinPath";
+
+import "./group-tree.css";
 
 type GroupTreeContextMenuProps = {
   group: GroupRepresentation;
@@ -31,16 +40,24 @@ const GroupTreeContextMenu = ({
 }: GroupTreeContextMenuProps) => {
   const { t } = useTranslation("groups");
 
-  const location = useLocation();
-  const navigate = useNavigate();
-
   const [isOpen, toggleOpen] = useToggle();
+  const [renameOpen, toggleRenameOpen] = useToggle();
   const [createOpen, toggleCreateOpen] = useToggle();
   const [moveOpen, toggleMoveOpen] = useToggle();
   const [deleteOpen, toggleDeleteOpen] = useToggle();
 
   return (
     <>
+      {renameOpen && (
+        <GroupsModal
+          id={group.id}
+          rename={group.name}
+          refresh={() => {
+            refresh();
+          }}
+          handleModalToggle={toggleRenameOpen}
+        />
+      )}
       {createOpen && (
         <GroupsModal
           id={group.id}
@@ -63,18 +80,16 @@ const GroupTreeContextMenu = ({
         isPlain
         position={DropdownPosition.right}
         dropdownItems={[
-          <DropdownItem key="create" onClick={toggleCreateOpen}>
-            {t("createGroup")}
+          <DropdownItem key="rename" onClick={toggleRenameOpen}>
+            {t("rename")}
           </DropdownItem>,
           <DropdownItem key="move" onClick={toggleMoveOpen}>
             {t("moveTo")}
           </DropdownItem>,
-          <DropdownItem
-            key="edit"
-            onClick={() => navigate(`${location.pathname}/${group.id}`)}
-          >
-            {t("common:edit")}
+          <DropdownItem key="create" onClick={toggleCreateOpen}>
+            {t("createChildGroup")}
           </DropdownItem>,
+          <DropdownSeparator key="separator" />,
           <DropdownItem key="delete" onClick={toggleDeleteOpen}>
             {t("common:delete")}
           </DropdownItem>,
@@ -84,124 +99,121 @@ const GroupTreeContextMenu = ({
   );
 };
 
-const mapGroup = (
-  group: GroupRepresentation,
-  refresh: () => void
-): TreeViewDataItem => ({
-  id: group.id,
-  name: group.name,
-  checkProps: { checked: false },
-  children:
-    group.subGroups && group.subGroups.length > 0
-      ? group.subGroups.map((g) => mapGroup(g, refresh))
-      : undefined,
-  action: <GroupTreeContextMenu group={group} refresh={refresh} />,
-});
-
-const filterGroup = (
-  group: TreeViewDataItem,
-  search: string
-): TreeViewDataItem | null => {
-  const name = group.name as string;
-  if (name.toLowerCase().includes(search)) {
-    return { ...group, defaultExpanded: true, children: undefined };
-  }
-
-  const children: TreeViewDataItem[] = [];
-  if (group.children) {
-    for (const g of group.children) {
-      const found = filterGroup(g, search);
-      if (found) children.push(found);
-    }
-    if (children.length > 0) {
-      return { ...group, defaultExpanded: true, children };
-    }
-  }
-  return null;
-};
-
-const filterGroups = (
-  groups: TreeViewDataItem[],
-  search: string
-): TreeViewDataItem[] => {
-  const result: TreeViewDataItem[] = [];
-  groups
-    .map((g) => filterGroup(g, search))
-    .forEach((g) => {
-      if (g !== null) result.push(g);
-    });
-
-  return result;
-};
-
 type GroupTreeProps = {
-  toggleView?: (viewType: ViewType) => void;
+  refresh: () => void;
+  canViewDetails: boolean;
 };
 
-export const GroupTree = ({ toggleView }: GroupTreeProps) => {
+export const GroupTree = ({
+  refresh: viewRefresh,
+  canViewDetails,
+}: GroupTreeProps) => {
   const { t } = useTranslation("groups");
   const { adminClient } = useAdminClient();
+  const { realm } = useRealm();
 
   const [data, setData] = useState<TreeViewDataItem[]>();
-  const [filteredData, setFilteredData] = useState<TreeViewDataItem[]>();
-  const [selectedRows, setSelectedRows] = useState<GroupRepresentation[]>([]);
-  const [showDelete, toggleShowDelete] = useToggle();
-  const [showCreate, toggleShowCreate] = useToggle();
+  const { subGroups, setSubGroups } = useSubGroups();
+
+  const [search, setSearch] = useState("");
+  const [max, setMax] = useState(20);
+  const [first, setFirst] = useState(0);
+  const [exact, setExact] = useState(false);
+
   const [key, setKey] = useState(0);
-  const refresh = () => setKey(key + 1);
+  const refresh = () => {
+    setKey(key + 1);
+    viewRefresh();
+  };
+
+  const mapGroup = (
+    group: GroupRepresentation,
+    parents: GroupRepresentation[],
+    refresh: () => void
+  ): TreeViewDataItem => {
+    const groups = [...parents, group];
+    return {
+      id: group.id,
+      name: (
+        <Tooltip content={group.name}>
+          {(canViewDetails && (
+            <Link
+              to={`/${realm}/groups/${joinPath(...groups.map((g) => g.id!))}`}
+              onClick={() => setSubGroups(groups)}
+            >
+              {group.name}
+            </Link>
+          )) || <span>{group.name}</span>}
+        </Tooltip>
+      ),
+      children:
+        group.subGroups && group.subGroups.length > 0
+          ? group.subGroups.map((g) => mapGroup(g, groups, refresh))
+          : undefined,
+      action: canViewDetails && (
+        <GroupTreeContextMenu group={group} refresh={refresh} />
+      ),
+      defaultExpanded: subGroups.map((g) => g.id).includes(group.id),
+    };
+  };
 
   useFetch(
     () =>
-      adminClient.groups.find({
-        briefRepresentation: false,
-      }),
-    (groups) => setData(groups.map((g) => mapGroup(g, refresh))),
-    [key]
+      fetchAdminUI<GroupRepresentation[]>(
+        adminClient,
+        "ui-ext/groups",
+        Object.assign(
+          {
+            first: `${first}`,
+            max: `${max + 1}`,
+            exact: `${exact}`,
+          },
+          search === "" ? null : { search }
+        )
+      ),
+    (groups) => setData(groups.map((g) => mapGroup(g, [], refresh))),
+    [key, first, max, search, exact]
   );
 
-  return (
-    <>
-      <DeleteGroup
-        show={showDelete}
-        toggleDialog={toggleShowDelete}
-        selectedRows={selectedRows}
-        refresh={refresh}
-      />
-      {showCreate && (
-        <GroupsModal handleModalToggle={toggleShowCreate} refresh={refresh} />
-      )}
-      {data ? (
-        <>
-          <TableToolbar
-            inputGroupName="searchForGroups"
-            inputGroupPlaceholder={t("groups:searchForGroups")}
-            inputGroupOnEnter={(search) => {
-              if (search === "") {
-                setFilteredData(undefined);
-              } else {
-                setFilteredData(filterGroups(data, search));
-              }
-            }}
-            toolbarItem={
-              <GroupToolbar
-                currentView={ViewType.Tree}
-                toggleView={toggleView}
-                toggleDelete={toggleShowDelete}
-                toggleCreate={toggleShowCreate}
-                kebabDisabled={selectedRows.length === 0}
-              />
-            }
+  return data ? (
+    <PaginatingTableToolbar
+      count={data.length || 0}
+      first={first}
+      max={max}
+      onNextClick={setFirst}
+      onPreviousClick={setFirst}
+      onPerPageSelect={(first, max) => {
+        setFirst(first);
+        setMax(max);
+      }}
+      inputGroupName="searchForGroups"
+      inputGroupPlaceholder={t("groups:searchForGroups")}
+      inputGroupOnEnter={setSearch}
+      toolbarItem={
+        <InputGroup className="pf-u-pt-sm">
+          <Checkbox
+            id="exact"
+            data-testid="exact-search"
+            name="exact"
+            isChecked={exact}
+            onChange={(value) => setExact(value)}
           />
-          <CheckableTreeView
-            data={filteredData || data}
-            onSelect={(items) =>
-              setSelectedRows(items.reverse() as GroupRepresentation[])
-            }
-          />
-        </>
-      ) : (
-        <KeycloakSpinner />
+          <label htmlFor="exact" className="pf-u-pl-sm">
+            {t("exactSearch")}
+          </label>
+        </InputGroup>
+      }
+    >
+      {data.length > 0 && (
+        <TreeView
+          data={data}
+          allExpanded={search.length > 0}
+          hasGuides
+          className="keycloak_groups_treeview"
+        />
       )}
-    </>
+    </PaginatingTableToolbar>
+  ) : (
+    <KeycloakSpinner />
   );
 };

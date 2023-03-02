@@ -6,20 +6,23 @@ import {
   WizardContextConsumer,
   WizardFooter,
 } from "@patternfly/react-core";
-import type ClientRepresentation from "@keycloak/keycloak-admin-client/lib/defs/clientRepresentation";
 import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom-v5-compat";
+import { useNavigate } from "react-router-dom";
+
 import { useAlerts } from "../../components/alert/Alerts";
+import { FormAccess } from "../../components/form-access/FormAccess";
 import { ViewHeader } from "../../components/view-header/ViewHeader";
 import { useAdminClient } from "../../context/auth/AdminClient";
 import { useRealm } from "../../context/realm-context/RealmContext";
 import { convertFormValuesToObject } from "../../util";
+import { FormFields } from "../ClientDetails";
 import { toClient } from "../routes/Client";
 import { toClients } from "../routes/Clients";
 import { CapabilityConfig } from "./CapabilityConfig";
 import { GeneralSettings } from "./GeneralSettings";
+import { LoginSettings } from "./LoginSettings";
 
 export default function NewClientForm() {
   const { t } = useTranslation("clients");
@@ -27,25 +30,32 @@ export default function NewClientForm() {
   const { adminClient } = useAdminClient();
   const navigate = useNavigate();
 
-  const [showCapabilityConfig, setShowCapabilityConfig] = useState(false);
-  const [client, setClient] = useState<ClientRepresentation>({
-    protocol: "openid-connect",
-    clientId: "",
-    name: "",
-    description: "",
-    publicClient: true,
-    authorizationServicesEnabled: false,
-    serviceAccountsEnabled: false,
-    implicitFlowEnabled: false,
-    directAccessGrantsEnabled: true,
-    standardFlowEnabled: true,
-    frontchannelLogout: true,
-  });
+  const [step, setStep] = useState(0);
+
   const { addAlert, addError } = useAlerts();
-  const methods = useForm<ClientRepresentation>({ defaultValues: client });
-  const protocol = methods.watch("protocol");
+  const form = useForm<FormFields>({
+    defaultValues: {
+      protocol: "openid-connect",
+      clientId: "",
+      name: "",
+      description: "",
+      publicClient: true,
+      authorizationServicesEnabled: false,
+      serviceAccountsEnabled: false,
+      implicitFlowEnabled: false,
+      directAccessGrantsEnabled: true,
+      standardFlowEnabled: true,
+      frontchannelLogout: true,
+      attributes: {
+        saml_idp_initiated_sso_url_name: "",
+      },
+    },
+  });
+  const { getValues, watch, trigger } = form;
+  const protocol = watch("protocol");
 
   const save = async () => {
+    const client = convertFormValuesToObject(getValues());
     try {
       const newClient = await adminClient.clients.create({
         ...client,
@@ -59,72 +69,31 @@ export default function NewClientForm() {
   };
 
   const forward = async (onNext?: () => void) => {
-    if (await methods.trigger()) {
-      setClient({
-        ...client,
-        ...convertFormValuesToObject(methods.getValues()),
-      });
-      if (!isFinalStep()) {
-        setShowCapabilityConfig(true);
-      }
-      onNext?.();
+    if (!(await trigger())) {
+      return;
     }
+    if (!isFinalStep()) {
+      setStep(step + 1);
+    }
+    onNext?.();
   };
 
   const isFinalStep = () =>
-    showCapabilityConfig || protocol !== "openid-connect";
+    protocol === "openid-connect" ? step === 2 : step === 1;
 
   const back = () => {
-    setClient({ ...client, ...convertFormValuesToObject(methods.getValues()) });
-    methods.reset({
-      ...client,
-      ...convertFormValuesToObject(methods.getValues()),
-    });
-    setShowCapabilityConfig(false);
+    setStep(step - 1);
   };
 
   const onGoToStep = (newStep: { id?: string | number }) => {
     if (newStep.id === "generalSettings") {
-      back();
+      setStep(0);
+    } else if (newStep.id === "capabilityConfig") {
+      setStep(1);
     } else {
-      forward();
+      setStep(2);
     }
   };
-
-  const Footer = () => (
-    <WizardFooter>
-      <WizardContextConsumer>
-        {({ activeStep, onNext, onBack, onClose }) => (
-          <>
-            <Button
-              variant="primary"
-              data-testid={isFinalStep() ? "save" : "next"}
-              type="submit"
-              onClick={() => {
-                forward(onNext);
-              }}
-            >
-              {isFinalStep() ? t("common:save") : t("common:next")}
-            </Button>
-            <Button
-              variant="secondary"
-              data-testid="back"
-              onClick={() => {
-                back();
-                onBack();
-              }}
-              isDisabled={activeStep.name === t("generalSettings")}
-            >
-              {t("common:back")}
-            </Button>
-            <Button data-testid="cancel" variant="link" onClick={onClose}>
-              {t("common:cancel")}
-            </Button>
-          </>
-        )}
-      </WizardContextConsumer>
-    </WizardFooter>
-  );
 
   const title = t("createClient");
   return (
@@ -134,7 +103,7 @@ export default function NewClientForm() {
         subKey="clients:clientsExplain"
       />
       <PageSection variant="light">
-        <FormProvider {...methods}>
+        <FormProvider {...form}>
           <Wizard
             onClose={() => navigate(toClients({ realm }))}
             navAriaLabel={`${title} steps`}
@@ -145,19 +114,65 @@ export default function NewClientForm() {
                 name: t("generalSettings"),
                 component: <GeneralSettings />,
               },
-              ...(showCapabilityConfig
+              ...(protocol !== "saml"
                 ? [
                     {
                       id: "capabilityConfig",
                       name: t("capabilityConfig"),
-                      component: (
-                        <CapabilityConfig protocol={client.protocol} />
-                      ),
+                      component: <CapabilityConfig protocol={protocol} />,
+                      canJumpTo: step >= 1,
                     },
                   ]
                 : []),
+              {
+                id: "loginSettings",
+                name: t("loginSettings"),
+                component: (
+                  <FormAccess isHorizontal role="manage-clients">
+                    <LoginSettings protocol={protocol} />
+                  </FormAccess>
+                ),
+                canJumpTo: step >= 1,
+              },
             ]}
-            footer={<Footer />}
+            footer={
+              <WizardFooter>
+                <WizardContextConsumer>
+                  {({ activeStep, onNext, onBack, onClose }) => (
+                    <>
+                      <Button
+                        variant="primary"
+                        data-testid={isFinalStep() ? "save" : "next"}
+                        type="submit"
+                        onClick={() => {
+                          forward(onNext);
+                        }}
+                      >
+                        {isFinalStep() ? t("common:save") : t("common:next")}
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        data-testid="back"
+                        onClick={() => {
+                          back();
+                          onBack();
+                        }}
+                        isDisabled={activeStep.name === t("generalSettings")}
+                      >
+                        {t("common:back")}
+                      </Button>
+                      <Button
+                        data-testid="cancel"
+                        variant="link"
+                        onClick={onClose}
+                      >
+                        {t("common:cancel")}
+                      </Button>
+                    </>
+                  )}
+                </WizardContextConsumer>
+              </WizardFooter>
+            }
             onSave={save}
             onGoToStep={onGoToStep}
           />

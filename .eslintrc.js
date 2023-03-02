@@ -21,6 +21,8 @@ module.exports = {
   plugins: ["lodash"],
   extends: [
     "eslint:recommended",
+    "plugin:import/recommended",
+    "plugin:import/typescript",
     "plugin:react/recommended",
     "plugin:react/jsx-runtime",
     "plugin:@typescript-eslint/base",
@@ -30,6 +32,10 @@ module.exports = {
   settings: {
     react: {
       version: "detect",
+    },
+    "import/resolver": {
+      typescript: true,
+      node: true,
     },
   },
   rules: {
@@ -47,6 +53,9 @@ module.exports = {
     "react/prop-types": "off",
     // Prevent fragments from being added that have only a single child.
     "react/jsx-no-useless-fragment": "error",
+    // Ban nesting components, as this will cause unintended re-mounting of components.
+    // TODO: All issues should be fixed and this rule should be set to "error".
+    "react/no-unstable-nested-components": ["warn", { allowAsProps: true }],
     "prefer-arrow-callback": "error",
     "prettier/prettier": [
       "error",

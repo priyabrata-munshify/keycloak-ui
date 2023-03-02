@@ -1,10 +1,10 @@
-import SidebarPage from "../support/pages/admin_console/SidebarPage";
+import SidebarPage from "../support/pages/admin-ui/SidebarPage";
 import LoginPage from "../support/pages/LoginPage";
-import RealmSettingsPage from "../support/pages/admin_console/manage/realm_settings/RealmSettingsPage";
+import RealmSettingsPage from "../support/pages/admin-ui/manage/realm_settings/RealmSettingsPage";
 import { keycloakBefore } from "../support/util/keycloak_hooks";
 import adminClient from "../support/util/AdminClient";
 import ModalUtils from "../support/util/ModalUtils";
-import Masthead from "../support/pages/admin_console/Masthead";
+import Masthead from "../support/pages/admin-ui/Masthead";
 
 const loginPage = new LoginPage();
 const sidebarPage = new SidebarPage();
@@ -14,23 +14,19 @@ const masthead = new Masthead();
 describe("Realm settings client profiles tab tests", () => {
   const profileName = "Test";
   const editedProfileName = "Edit";
-  const realmName = "Realm_" + (Math.random() + 1).toString(36).substring(7);
+  const realmName = "Realm_" + crypto.randomUUID();
   const realmSettingsPage = new RealmSettingsPage(realmName);
 
   beforeEach(() => {
+    loginPage.logIn();
+    keycloakBefore();
     sidebarPage.waitForPageLoad().goToRealm(realmName).goToRealmSettings();
     realmSettingsPage.goToClientPoliciesTab().goToClientProfilesList();
   });
 
-  before(() => {
-    keycloakBefore();
-    adminClient.createRealm(realmName);
-    loginPage.logIn();
-  });
+  before(() => adminClient.createRealm(realmName));
 
-  after(async () => {
-    await adminClient.deleteRealm(realmName);
-  });
+  after(() => adminClient.deleteRealm(realmName));
 
   it("Go to client policies profiles tab", () => {
     realmSettingsPage.shouldDisplayProfilesTab();

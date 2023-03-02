@@ -27,9 +27,25 @@
   "otpPolicyCodeReusable": "Reusable token",
   "initialCounter": "Initial counter",
   "initialCounterErrorHint": "Value needs to be between 1 and 120",
-  "supportedActions": "Supported actions",
+  "supportedApplications": "Supported applications",
+  "otpSupportedApplications": {
+    "totpAppFreeOTPName": "FreeOTP",
+    "totpAppGoogleName": "Google Authenticator",
+    "totpAppMicrosoftAuthenticatorName": "Microsoft Authenticator"
+  },
   "updateOtpSuccess": "OTP policy successfully updated",
   "updateOtpError": "Could not update OTP policy: {{error}}",
+  "cibaPolicy": "CIBA Policy",
+  "cibaBackchannelTokenDeliveryMode": "Backchannel Token Delivery Mode",
+  "cibaBackhannelTokenDeliveryModes": {
+    "poll": "Poll",
+    "ping": "Ping"
+  },
+  "cibaExpiresIn": "Expires In",
+  "cibaInterval": "Interval",
+  "cibaAuthRequestedUserHint": "Authentication Requested User Hint",
+  "updateCibaSuccess": "CIBA policy successfully updated",
+  "updateCibaError": "Could not update CIBA policy: {{error}}",
   "webAuthnPolicySignatureAlgorithms": "Signature algorithms",
   "webAuthnPolicyRpId": "Relying party ID",
   "webAuthnPolicyAttestationConveyancePreference": "Attestation conveyance preference",
