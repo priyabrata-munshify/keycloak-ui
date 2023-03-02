@@ -8,6 +8,7 @@ import useRequiredContext from "../../utils/useRequiredContext";
 type AccessContextProps = {
   hasAccess: (...types: AccessType[]) => boolean;
   hasSomeAccess: (...types: AccessType[]) => boolean;
+  hasSomeAccessByString: (...types: string[]) => boolean;
 };
 
 export const AccessContext = createNamedContext<AccessContextProps | undefined>(
@@ -36,8 +37,14 @@ export const AccessContextProvider = ({ children }: PropsWithChildren) => {
     return types.some((type) => type === "anyone" || access.includes(type));
   };
 
+  const hasSomeAccessByString = (...types: string[]) => {
+    return types.some((type) => type === "anyone" || access.filter(a => {
+      return a.toString() === type;
+    }).length > 0);
+  };
+
   return (
-    <AccessContext.Provider value={{ hasAccess, hasSomeAccess }}>
+    <AccessContext.Provider value={{ hasAccess, hasSomeAccess, hasSomeAccessByString }}>
       {children}
     </AccessContext.Provider>
   );
