@@ -25,7 +25,7 @@ export const AlertContext = createContext<AlertProps | undefined>(undefined);
 export const useAlerts = () => useContext(AlertContext)!;
 
 export type AlertType = {
-  id: string;
+  id: number;
   message: string;
   variant: AlertVariant;
   description?: string;
@@ -35,7 +35,7 @@ export const AlertProvider = ({ children }: PropsWithChildren) => {
   const { t } = useTranslation();
   const [alerts, setAlerts] = useState<AlertType[]>([]);
 
-  const hideAlert = (id: string) => {
+  const hideAlert = (id: number) => {
     setAlerts((alerts) => alerts.filter((alert) => alert.id !== id));
   };
 
@@ -46,8 +46,7 @@ export const AlertProvider = ({ children }: PropsWithChildren) => {
   ) => {
     setAlerts([
       {
-        id: crypto.randomUUID(),
-        //@ts-ignore
+        id: Math.random() * 100,
         message: t(message),
         variant,
         description,
