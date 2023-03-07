@@ -12,7 +12,6 @@ import { useAlerts } from "../components/alert/Alerts";
 import useOrgFetcher from "./useOrgFetcher";
 import type { OrgParams } from "./routes/Org";
 import { ViewHeader } from "../components/view-header/ViewHeader";
-import { KeycloakTabs } from "../components/keycloak-tabs/KeycloakTabs";
 import OrgMembers from "./OrgMembers";
 import OrgInvitations from "./OrgInvitations";
 import OrgRoles from "./OrgRoles";
@@ -21,6 +20,7 @@ import useToggle from "../utils/useToggle";
 import OrgIdentityProviders from "./OrgIdentityProviders";
 import OrgSettings from "./OrgSettings";
 import OrgAttributes from "./OrgAttributes";
+import { RoutableTabs } from "../components/routable-tabs/RoutableTabs";
 
 export default function OrgDetails() {
   const { orgId } = useParams<OrgParams>();
@@ -32,7 +32,7 @@ export default function OrgDetails() {
   const { getOrg, org } = useOrgFetcher(realm);
 
   useEffect(() => {
-    getOrg(orgId).catch((e) => addError(t("errorFetching"), e));
+    getOrg(orgId!).catch((e) => addError(t("errorFetching"), e));
   }, []);
 
   if (!org) return <div></div>;
@@ -56,7 +56,7 @@ export default function OrgDetails() {
         toggleDialog={togglePortalLinkOpen}
       />
       <PageSection variant="light" className="pf-u p-0">
-        <KeycloakTabs data-testid="orgs-tabs" isBox mountOnEnter>
+        <RoutableTabs data-testid="orgs-tabs" isBox mountOnEnter>
           <Tab
             id="details"
             eventKey="details"
@@ -99,7 +99,7 @@ export default function OrgDetails() {
           >
             <OrgIdentityProviders org={org} />
           </Tab>
-        </KeycloakTabs>
+        </RoutableTabs>
       </PageSection>
     </>
   );

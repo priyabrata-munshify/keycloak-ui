@@ -20,8 +20,7 @@ import { useTranslation } from "react-i18next";
 import { useAdminClient } from "../context/auth/AdminClient";
 import IdentityProviderRepresentation from "@keycloak/keycloak-admin-client/lib/defs/identityProviderRepresentation";
 import { isNil } from "lodash-es";
-import { useNavigate } from "react-router-dom-v5-compat";
-import { generatePath } from "react-router-dom-v5-compat";
+import { useNavigate, generatePath } from "react-router-dom";
 
 type OrgIdentityProvidersProps = {
   org: OrgRepresentation;

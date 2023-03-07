@@ -190,11 +190,10 @@ export const LoginStyles = () => {
             </FlexItem>
             <FlexItem grow={{ default: "grow" }}>
               <KeycloakTextInput
-                ref={register({ required: true })}
+                {...register("primaryColor", { required: true })}
                 type="text"
                 id="kc-styles-logo-url"
                 data-testid="kc-styles-logo-url"
-                name="primaryColor"
                 pattern={HexColorPattern}
                 validated={
                   errors.primaryColor
@@ -232,11 +231,10 @@ export const LoginStyles = () => {
             </FlexItem>
             <FlexItem grow={{ default: "grow" }}>
               <KeycloakTextInput
-                ref={register({ required: true })}
+                {...register("secondaryColor", { required: true })}
                 type="text"
                 id="kc-styles-logo-url"
                 data-testid="kc-styles-logo-url"
-                name="secondaryColor"
                 pattern={HexColorPattern}
                 validated={
                   errors.secondaryColor
@@ -274,11 +272,10 @@ export const LoginStyles = () => {
             </FlexItem>
             <FlexItem grow={{ default: "grow" }}>
               <KeycloakTextInput
-                ref={register({ required: true })}
+                {...register("backgroundColor", { required: true })}
                 type="text"
                 id="kc-styles-logo-url"
                 data-testid="kc-styles-logo-url"
-                name="backgroundColor"
                 pattern={HexColorPattern}
                 validated={
                   errors.backgroundColor
@@ -301,11 +298,10 @@ export const LoginStyles = () => {
           }
         >
           <KeycloakTextArea
-            ref={register({ required: true })}
-            type="text"
             id="kc-styles-logo-url"
+            {...register("css", { required: true })}
+            type="text"
             data-testid="kc-styles-logo-url"
-            name="css"
             validated={
               errors.css ? ValidatedOptions.error : ValidatedOptions.default
             }

@@ -1,16 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { isValidElement, useEffect, useState, useMemo } from "react";
+import { isValidElement, useEffect, useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  IAction,
   IActions,
   IActionsResolver,
-  IFormatter,
-  ITransform,
+  IRow,
   Table,
   TableBody,
   TableHeader,
-  TableProps,
   TableVariant,
 } from "@patternfly/react-table";
 import { get, cloneDeep, differenceBy, omit, uniqBy } from "lodash-es";
@@ -91,7 +88,7 @@ function DataTable<T>({
       cells={columns.map((column) => {
         return { ...column, title: t(column.displayKey || column.name) };
       })}
-      rows={rows}
+      rows={rows as IRow[]}
       actions={actions}
       actionResolver={actionResolver}
       aria-label={t(ariaLabelKey)}
@@ -344,7 +341,7 @@ export function KeycloakDataTableCustomized<T>({
       return action;
     });
 
-  const Loading = () => <KeycloakSpinner />;
+  const Loading = <KeycloakSpinner />;
 
   const _onSelect = (isSelected: boolean, rowIndex: number) => {
     const data = filteredData || rows;
@@ -451,7 +448,7 @@ export function KeycloakDataTableCustomized<T>({
               }
             />
           )}
-          {loading && <Loading />}
+          {loading && Loading}
         </TableToolbar>
       )}
       {!loading && noData && !searching && emptyState}

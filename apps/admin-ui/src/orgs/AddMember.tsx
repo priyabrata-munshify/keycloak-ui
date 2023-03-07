@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useHistory } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   AlertVariant,
   Button,
@@ -33,9 +33,9 @@ export const AddMember = ({ orgId, onClose, refresh }: MemberModalProps) => {
   const { addAlert, addError } = useAlerts();
   const [selectedRows, setSelectedRows] = useState<UserRepresentation[]>([]);
 
-  const history = useHistory();
+  const navigate = useNavigate();
 
-  const goToCreate = () => history.push(toAddUser({ realm }));
+  const goToCreate = () => navigate(toAddUser({ realm }));
 
   const loader = async (
     first?: number,

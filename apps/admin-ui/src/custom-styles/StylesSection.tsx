@@ -2,9 +2,8 @@ import { PageSection, Tab, TabTitleText } from "@patternfly/react-core";
 import { useTranslation } from "react-i18next";
 import { ViewHeader } from "../components/view-header/ViewHeader";
 import helpUrls from "../help-urls";
-import { useHistory } from "react-router-dom";
 import {
-  routableTab,
+  useRoutableTab,
   RoutableTabs,
 } from "../components/routable-tabs/RoutableTabs";
 import { StylesTab, toStyles } from "./routes/Styles";
@@ -20,7 +19,6 @@ import { useRealm } from "../context/realm-context/RealmContext";
 
 export default function StylesSection() {
   const { t } = useTranslation("styles");
-  const history = useHistory();
 
   const { adminClient } = useAdminClient();
   const { realm: realmName } = useRealm();
@@ -41,10 +39,7 @@ export default function StylesSection() {
   }
 
   const route = (tab: StylesTab) =>
-    routableTab({
-      to: toStyles({ realm: realmName, tab }),
-      history,
-    });
+    useRoutableTab(toStyles({ realm: realmName, tab }));
 
   return (
     <>

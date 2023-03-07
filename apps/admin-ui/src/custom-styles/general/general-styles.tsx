@@ -205,7 +205,7 @@ export const GeneralStyles = () => {
           }
         >
           <KeycloakTextInput
-            ref={register({ required: true })}
+            {...register("logoUrl", { required: true })}
             type="text"
             id="kc-styles-logo-url"
             data-testid="kc-styles-logo-url"
@@ -243,11 +243,10 @@ export const GeneralStyles = () => {
           }
         >
           <KeycloakTextInput
-            ref={register({ required: true })}
+            {...register("faviconUrl", { required: true })}
             type="text"
             id="kc-styles-favicon-url"
             data-testid="kc-styles-favicon-url"
-            name="faviconUrl"
             validated={
               errors.faviconUrl
                 ? ValidatedOptions.error

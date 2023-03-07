@@ -1,6 +1,5 @@
-import type { LocationDescriptorObject } from "history";
 import { lazy } from "react";
-import { generatePath } from "react-router-dom";
+import { generatePath, Path } from "react-router-dom";
 import type { RouteDef } from "../../route-config";
 
 export type OrgsParams = {
@@ -14,6 +13,6 @@ export const OrgsRoute: RouteDef = {
   access: "query-clients",
 };
 
-export const toOrgs = (params: OrgsParams): LocationDescriptorObject => ({
+export const toOrgs = (params: OrgsParams): Partial<Path> => ({
   pathname: generatePath(OrgsRoute.path, params),
 });

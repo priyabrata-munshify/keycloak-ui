@@ -1,7 +1,7 @@
 import { lazy } from "react";
 import { generatePath } from "react-router-dom";
 import type { RouteDef } from "../../route-config";
-import type { Path } from "react-router-dom-v5-compat";
+import type { Path } from "react-router-dom";
 
 export type StylesTab = "general" | "login" | "email";
 

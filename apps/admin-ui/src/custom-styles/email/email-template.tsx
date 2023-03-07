@@ -280,7 +280,7 @@ export const EmailTemplate = ({ realm, refresh }: EmailTemplateTabProps) => {
           }
         >
           <KeycloakTextArea
-            ref={register({ required: true })}
+            {...register("htmlEmail", { required: true })}
             id="htmlEmail"
             data-testid="htmlEmail"
             name="htmlEmail"
@@ -310,7 +310,7 @@ export const EmailTemplate = ({ realm, refresh }: EmailTemplateTabProps) => {
           }
         >
           <KeycloakTextArea
-            ref={register({ required: true })}
+            {...register("textEmail", { required: true })}
             id="textEmail"
             data-testid="textEmail"
             name="textEmail"

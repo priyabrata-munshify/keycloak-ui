@@ -1,13 +1,15 @@
-import React from "react";
 import { useTranslation } from "react-i18next";
-import { useFormContext } from "react-hook-form";
+import { Controller, useFormContext } from "react-hook-form";
 import { FormGroup, TextInput, ValidatedOptions } from "@patternfly/react-core";
 import { MultiLineInput } from "../../components/multi-line-input/MultiLineInput";
 import { HelpItem } from "../../components/help-enabler/HelpItem";
 
 export const NewOrg = () => {
   const { t } = useTranslation("orgs");
-  const { register, errors } = useFormContext();
+  const {
+    formState: { errors },
+    control,
+  } = useFormContext();
 
   return (
     <>
@@ -22,17 +24,21 @@ export const NewOrg = () => {
         }
         isRequired
       >
-        <TextInput
-          data-testid="orgNameInput"
-          aria-label="org name input"
-          ref={register({ required: true })}
-          autoFocus
-          type="text"
-          id="create-org-name"
+        <Controller
           name="name"
-          validated={
-            errors.name ? ValidatedOptions.error : ValidatedOptions.default
-          }
+          control={control}
+          rules={{ required: true }}
+          render={({ field }) => (
+            <TextInput
+              id="name"
+              value={field.value}
+              onChange={field.onChange}
+              data-testid="name-input"
+              validated={
+                errors.name ? ValidatedOptions.error : ValidatedOptions.default
+              }
+            />
+          )}
         />
       </FormGroup>
 
@@ -42,13 +48,17 @@ export const NewOrg = () => {
         label={t("displayName")}
         fieldId="displayName"
       >
-        <TextInput
-          data-testid="orgDisplayNameInput"
-          aria-label="org display-name input"
-          ref={register()}
-          type="text"
-          id="create-org-display-name"
+        <Controller
           name="displayName"
+          control={control}
+          render={({ field }) => (
+            <TextInput
+              id="displayName"
+              value={field.value}
+              onChange={field.onChange}
+              data-testid="displayName-input"
+            />
+          )}
         />
       </FormGroup>
 
@@ -69,13 +79,17 @@ export const NewOrg = () => {
 
       {/*Url*/}
       <FormGroup name="create-modal-org" label={t("url")} fieldId="url">
-        <TextInput
-          data-testid="orgUrlInput"
-          aria-label="org url input"
-          ref={register()}
-          type="text"
-          id="create-org-display-url"
+        <Controller
           name="url"
+          control={control}
+          render={({ field }) => (
+            <TextInput
+              id="url"
+              value={field.value}
+              onChange={field.onChange}
+              data-testid="url-input"
+            />
+          )}
         />
       </FormGroup>
     </>

@@ -1,8 +1,6 @@
-import React from "react";
 import {
   Button,
   ButtonVariant,
-  Checkbox,
   Form,
   FormGroup,
   Modal,
@@ -10,7 +8,7 @@ import {
   TextInput,
   ValidatedOptions,
 } from "@patternfly/react-core";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 
 import { useAlerts } from "../components/alert/Alerts";
 import useOrgFetcher from "./useOrgFetcher";
@@ -28,17 +26,27 @@ export default function AddInvitation({
   org,
   refresh,
 }: AddInvitationProps) {
-  const { register, errors, handleSubmit } = useForm();
+  const {
+    formState: { errors },
+    handleSubmit,
+    control,
+  } = useForm();
   const { realm } = useRealm();
   const { createInvitation } = useOrgFetcher(realm);
   const { addAlert } = useAlerts();
 
-  const submitForm = async (invitation: { email: string, redirectUri: string }) => {
-    await createInvitation(org.id, invitation.email, true, invitation.redirectUri);
+  const submitForm = async (invitation: any) => {
+    await createInvitation(
+      org.id,
+      invitation.email,
+      true,
+      invitation.redirectUri
+    );
     addAlert(`${invitation.email} has been invited`);
     refresh();
     toggleVisibility();
   };
+
   return (
     <Modal
       variant={ModalVariant.small}
@@ -82,14 +90,19 @@ export default function AddInvitation({
           }
           isRequired
         >
-          <TextInput
-            data-testid="orgEmailInput"
-            aria-label="org email input"
-            ref={register({ required: true })}
-            autoFocus
-            type="text"
-            id="create-invitation-email"
+          <Controller
             name="email"
+            control={control}
+            rules={{ required: true }}
+            render={({ field }) => (
+              <TextInput
+                autoFocus
+                id="email"
+                value={field.value}
+                onChange={field.onChange}
+                data-testid="email-input"
+              />
+            )}
           />
         </FormGroup>
         <FormGroup
@@ -97,19 +110,29 @@ export default function AddInvitation({
           label="Redirect URI"
           fieldId="redirectUri"
           labelIcon={
-            <HelpItem helpText="orgs:redirectUriHelp" fieldLabelId="orgs:redirectUri" />
+            <HelpItem
+              helpText="orgs:redirectUriHelp"
+              fieldLabelId="orgs:redirectUri"
+            />
           }
           validated={
-            errors.redirectUri ? ValidatedOptions.error : ValidatedOptions.default
+            errors.redirectUri
+              ? ValidatedOptions.error
+              : ValidatedOptions.default
           }
         >
-          <TextInput
-            data-testid="orgEmailRedirect"
-            aria-label="org email redirect"
-            ref={register({ required: false })}
-            type="text"
-            id="create-invitation-redirect"
+          <Controller
             name="redirectUri"
+            control={control}
+            rules={{ required: false }}
+            render={({ field }) => (
+              <TextInput
+                id="redirectUri"
+                value={field.value}
+                onChange={field.onChange}
+                data-testid="redirectUri-input"
+              />
+            )}
           />
         </FormGroup>
       </Form>

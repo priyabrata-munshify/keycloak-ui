@@ -239,6 +239,7 @@ export const RealmSettingsTabs = ({
   const clientPoliciesTab = useTab("client-policies");
   const userProfileTab = useTab("user-profile");
   const userRegistrationTab = useTab("user-registration");
+  const attributesTab = useTab("attributes");
 
   const useClientPoliciesTab = (tab: ClientPoliciesTab) =>
     useRoutableTab(
@@ -417,7 +418,7 @@ export const RealmSettingsTabs = ({
           <Tab
             title={<TabTitleText>{t("attributes")}</TabTitleText>}
             data-testid="rs-realm-attributes-tab"
-            {...route("attributes")}
+            {...attributesTab}
           >
             <RealmSettingsAttributeTab realm={realm} />
           </Tab>

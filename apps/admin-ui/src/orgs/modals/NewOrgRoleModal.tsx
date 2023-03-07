@@ -1,4 +1,3 @@
-import React from "react";
 import {
   AlertVariant,
   Button,
@@ -11,7 +10,7 @@ import {
   ValidatedOptions,
 } from "@patternfly/react-core";
 import { useTranslation } from "react-i18next";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 
 import type RoleRepresentation from "@keycloak/keycloak-admin-client/lib/defs/roleRepresentation";
 import { useAlerts } from "../../components/alert/Alerts";
@@ -34,8 +33,8 @@ export const NewOrgRoleModal = ({
   const { createRoleForOrg } = useOrgFetcher(realm);
   const { addAlert, addError } = useAlerts();
   const {
-    register,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
   } = useForm({});
 
@@ -104,17 +103,23 @@ export const NewOrgRoleModal = ({
           }
           isRequired
         >
-          <TextInput
-            data-testid="roleNameInput"
-            aria-label="role name input"
-            ref={register({ required: true, pattern: /\b[a-z]+/ })}
-            autoFocus
-            type="text"
-            id="create-role-name"
+          <Controller
             name="name"
-            validated={
-              errors.name ? ValidatedOptions.error : ValidatedOptions.default
-            }
+            control={control}
+            rules={{ required: true, pattern: /\b[a-z]+/ }}
+            render={({ field }) => (
+              <TextInput
+                id="create-role-name"
+                value={field.value}
+                onChange={field.onChange}
+                data-testid="create-role-name-input"
+                validated={
+                  errors.name
+                    ? ValidatedOptions.error
+                    : ValidatedOptions.default
+                }
+              />
+            )}
           />
         </FormGroup>
 
@@ -128,18 +133,22 @@ export const NewOrgRoleModal = ({
               : ValidatedOptions.default
           }
         >
-          <TextInput
-            data-testid="roleDescriptionInput"
-            aria-label="role description input"
-            ref={register({})}
-            type="text"
-            id="role-description"
+          <Controller
             name="description"
-            validated={
-              errors.description
-                ? ValidatedOptions.error
-                : ValidatedOptions.default
-            }
+            control={control}
+            render={({ field }) => (
+              <TextInput
+                id="role-description"
+                value={field.value}
+                onChange={field.onChange}
+                data-testid="role-description-input"
+                validated={
+                  errors.description
+                    ? ValidatedOptions.error
+                    : ValidatedOptions.default
+                }
+              />
+            )}
           />
         </FormGroup>
       </Form>

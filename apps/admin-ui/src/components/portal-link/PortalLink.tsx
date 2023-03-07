@@ -8,7 +8,7 @@ import {
   Stack,
   StackItem,
 } from "@patternfly/react-core";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { useRealm } from "../../context/realm-context/RealmContext";
@@ -31,9 +31,9 @@ export const PortalLink = ({ id, open, toggleDialog }: PortalLinkProps) => {
 
   useEffect(() => {
     if (open) {
-      getPortalLink(orgId, "")
-      .then((pl) => setPortalLink(pl?.link || ""))
-      .catch((e) => console.log(e));
+      getPortalLink(orgId!, "")
+        .then((pl) => setPortalLink(pl?.link || ""))
+        .catch((e) => console.log(e));
     }
   }, [open]);
 
