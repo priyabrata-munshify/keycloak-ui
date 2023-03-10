@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   PageSection,
   ToolbarItem,
@@ -43,7 +43,7 @@ export default function OrgsSection() {
     org.name ? (
       <Link
         key={org.id}
-        to={toOrg({ realm, orgId: org.id as string, tab: "details" })}
+        to={toOrg({ realm, orgId: org.id as string, tab: "settings" })}
       >
         {org.name}
       </Link>

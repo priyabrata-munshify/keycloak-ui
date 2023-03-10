@@ -34,12 +34,16 @@ export default function StylesSection() {
     key,
   ]);
 
+  const useTab = (tab: StylesTab) =>
+    useRoutableTab(toStyles({ realm: realmName, tab }));
+
+  const generalTab = useTab("general");
+  const loginTab = useTab("login");
+  const emailTab = useTab("email");
+
   if (!realm) {
     return <KeycloakSpinner />;
   }
-
-  const route = (tab: StylesTab) =>
-    useRoutableTab(toStyles({ realm: realmName, tab }));
 
   return (
     <>
@@ -61,21 +65,21 @@ export default function StylesSection() {
           <Tab
             data-testid="general"
             title={<TabTitleText>{t("general")}</TabTitleText>}
-            {...route("general")}
+            {...generalTab}
           >
             <GeneralStyles />
           </Tab>
           <Tab
             data-testid="login"
             title={<TabTitleText>{t("login")}</TabTitleText>}
-            {...route("login")}
+            {...loginTab}
           >
             <LoginStyles />
           </Tab>
           <Tab
             data-testid="email"
             title={<TabTitleText>{t("email")}</TabTitleText>}
-            {...route("email")}
+            {...emailTab}
           >
             <EmailTemplate realm={realm} refresh={refresh} />
           </Tab>

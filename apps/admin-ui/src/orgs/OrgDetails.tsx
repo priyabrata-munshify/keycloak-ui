@@ -20,7 +20,11 @@ import useToggle from "../utils/useToggle";
 import OrgIdentityProviders from "./OrgIdentityProviders";
 import OrgSettings from "./OrgSettings";
 import OrgAttributes from "./OrgAttributes";
-import { RoutableTabs } from "../components/routable-tabs/RoutableTabs";
+import {
+  RoutableTabs,
+  useRoutableTab,
+} from "../components/routable-tabs/RoutableTabs";
+import { toOrg, OrgTab } from "./routes/Org";
 
 export default function OrgDetails() {
   const { orgId } = useParams<OrgParams>();
@@ -34,6 +38,22 @@ export default function OrgDetails() {
   useEffect(() => {
     getOrg(orgId!).catch((e) => addError(t("errorFetching"), e));
   }, []);
+
+  const useTab = (tab: OrgTab) =>
+    useRoutableTab(
+      toOrg({
+        realm,
+        orgId: orgId!,
+        tab,
+      })
+    );
+
+  const settingsTab = useTab("settings");
+  const attributesTab = useTab("attributes");
+  const membersTab = useTab("members");
+  const invitationsTab = useTab("invitations");
+  const rolesTab = useTab("roles");
+  const identityProvidersTab = useTab("identityproviders");
 
   if (!org) return <div></div>;
 
@@ -58,44 +78,44 @@ export default function OrgDetails() {
       <PageSection variant="light" className="pf-u p-0">
         <RoutableTabs data-testid="orgs-tabs" isBox mountOnEnter>
           <Tab
-            id="details"
-            eventKey="details"
+            id="settings"
             title={<TabTitleText>{t("common:settings")}</TabTitleText>}
+            {...settingsTab}
           >
             <OrgSettings org={org} />
           </Tab>
           <Tab
             id="attributes"
-            eventKey="attributes"
             title={<TabTitleText>Attributes</TabTitleText>}
+            {...attributesTab}
           >
             <OrgAttributes org={org} />
           </Tab>
           <Tab
             id="members"
-            eventKey="members"
             title={<TabTitleText>Members</TabTitleText>}
+            {...membersTab}
           >
             <OrgMembers org={org} />
           </Tab>
           <Tab
             id="invitations"
-            eventKey="invitations"
             title={<TabTitleText>Invitations</TabTitleText>}
+            {...invitationsTab}
           >
             <OrgInvitations org={org} />
           </Tab>
           <Tab
             id="roles"
-            eventKey="roles"
             title={<TabTitleText>Roles</TabTitleText>}
+            {...rolesTab}
           >
             <OrgRoles org={org} />
           </Tab>
           <Tab
             id="identityproviders"
-            eventKey="identityproviders"
             title={<TabTitleText>Identity Providers</TabTitleText>}
+            {...identityProvidersTab}
           >
             <OrgIdentityProviders org={org} />
           </Tab>

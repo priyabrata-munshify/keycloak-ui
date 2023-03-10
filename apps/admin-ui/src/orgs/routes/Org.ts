@@ -2,7 +2,13 @@ import type { RouteDef } from "../../route-config";
 import { lazy } from "react";
 import { generatePath, Path } from "react-router-dom";
 
-export type OrgTab = "details" | "membership";
+export type OrgTab =
+  | "settings"
+  | "attributes"
+  | "members"
+  | "invitations"
+  | "roles"
+  | "identityproviders";
 
 export type OrgParams = {
   realm: string;

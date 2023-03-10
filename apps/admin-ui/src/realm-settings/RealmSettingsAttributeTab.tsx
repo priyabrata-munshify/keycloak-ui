@@ -27,7 +27,7 @@ type RealmSettingsAttributeTabProps = {
 export const RealmSettingsAttributeTab = ({
   realm: defaultRealm,
 }: RealmSettingsAttributeTabProps) => {
-  const { t } = useTranslation("realms");
+  const { t } = useTranslation("realm-settings");
   const { adminClient } = useAdminClient();
   const { addAlert, addError } = useAlerts();
   const [realm, setRealm] = useState<RealmRepresentation>(defaultRealm);
@@ -82,15 +82,17 @@ export const RealmSettingsAttributeTab = ({
           behavior. Use this only if you are sure what you are doing.
         </p>
       </Alert>
-      <AttributesForm
-        form={form}
-        save={save}
-        reset={() =>
-          form.reset({
-            attributes: convertAttributes(),
-          })
-        }
-      />
+      <div className="pf-u-mb-lg pf-u-w-75-on-md">
+        <AttributesForm
+          form={form}
+          save={save}
+          reset={() =>
+            form.reset({
+              attributes: convertAttributes(),
+            })
+          }
+        />
+      </div>
     </PageSection>
   );
 };
