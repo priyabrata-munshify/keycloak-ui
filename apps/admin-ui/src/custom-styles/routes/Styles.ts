@@ -3,7 +3,7 @@ import { generatePath } from "react-router-dom";
 import type { RouteDef } from "../../route-config";
 import type { Path } from "react-router-dom";
 
-export type StylesTab = "general" | "login" | "email";
+export type StylesTab = "general" | "login" | "email" | "portal";
 
 export type StylesParams = {
   realm: string;

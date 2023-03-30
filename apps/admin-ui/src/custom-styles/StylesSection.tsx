@@ -10,6 +10,7 @@ import { StylesTab, toStyles } from "./routes/Styles";
 import { LoginStyles } from "./login/login-styles";
 import { GeneralStyles } from "./general/general-styles";
 import { EmailTemplate } from "./email/email-template";
+import { PortalStyles } from "./portal/portal-styles";
 
 import type RealmRepresentation from "@keycloak/keycloak-admin-client/lib/defs/realmRepresentation";
 import { KeycloakSpinner } from "../components/keycloak-spinner/KeycloakSpinner";
@@ -40,6 +41,7 @@ export default function StylesSection() {
   const generalTab = useTab("general");
   const loginTab = useTab("login");
   const emailTab = useTab("email");
+  const portalTab = useTab("portal");
 
   if (!realm) {
     return <KeycloakSpinner />;
@@ -82,6 +84,13 @@ export default function StylesSection() {
             {...emailTab}
           >
             <EmailTemplate realm={realm} refresh={refresh} />
+          </Tab>
+          <Tab
+            data-testid="portal"
+            title={<TabTitleText>{t("portal")}</TabTitleText>}
+            {...portalTab}
+          >
+            <PortalStyles />
           </Tab>
         </RoutableTabs>
       </PageSection>
