@@ -1,5 +1,6 @@
 import {
   AlertVariant,
+  Checkbox,
   Flex,
   FlexItem,
   Form,
@@ -7,7 +8,7 @@ import {
   PageSection,
   ValidatedOptions,
 } from "@patternfly/react-core";
-import { useForm, useWatch } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { HelpItem } from "../../components/help-enabler/HelpItem";
 import { KeycloakTextInput } from "../../components/keycloak-text-input/KeycloakTextInput";
@@ -16,7 +17,7 @@ import { useState, useEffect } from "react";
 import { useAdminClient } from "../../context/auth/AdminClient";
 import { useRealm } from "../../context/realm-context/RealmContext";
 import RealmRepresentation from "@keycloak/keycloak-admin-client/lib/defs/realmRepresentation";
-import { get } from "lodash-es";
+import { get, mapKeys, pick } from "lodash-es";
 import { useAlerts } from "../../components/alert/Alerts";
 import { ColorPicker } from "../components/ColorPicker";
 import { KeycloakTextArea } from "../../components/keycloak-text-area/KeycloakTextArea";
@@ -26,7 +27,42 @@ type PortalStylesType = {
   secondaryColor: string;
   backgroundColor: string;
   css: string;
+  portal_profile_enabled: boolean;
+  portal_profile_password_enabled: boolean;
+  portal_profile_twofactor_enabled: boolean;
+  portal_profile_activity_enabled: boolean;
+  portal_profile_linked_enabled: boolean;
+  portal_org_enabled: boolean;
+  portal_org_details_enabled: boolean;
+  portal_org_members_enabled: boolean;
+  portal_org_invitations_enabled: boolean;
+  portal_org_domains_enabled: boolean;
+  portal_org_sso_enabled: boolean;
+  portal_org_events_enabled: boolean;
 };
+
+type PortalStylesKeys = keyof PortalStylesType;
+
+const visiblityProfileItems: PortalStylesKeys[] = [
+  "portal_profile_enabled",
+  "portal_profile_password_enabled",
+  "portal_profile_twofactor_enabled",
+  "portal_profile_activity_enabled",
+  "portal_profile_linked_enabled",
+];
+const visiblityOrganizationItems: PortalStylesKeys[] = [
+  "portal_org_enabled",
+  "portal_org_details_enabled",
+  "portal_org_members_enabled",
+  "portal_org_invitations_enabled",
+  "portal_org_domains_enabled",
+  "portal_org_sso_enabled",
+  "portal_org_events_enabled",
+];
+const visibilityItems = [
+  ...visiblityProfileItems,
+  ...visiblityOrganizationItems,
+];
 
 const HexColorPattern = "^#([0-9a-f]{3}){1,2}$";
 
@@ -48,6 +84,18 @@ export const PortalStyles = () => {
       secondaryColor: "",
       backgroundColor: "",
       css: "",
+      portal_profile_enabled: false,
+      portal_profile_password_enabled: false,
+      portal_profile_twofactor_enabled: false,
+      portal_profile_activity_enabled: false,
+      portal_profile_linked_enabled: false,
+      portal_org_enabled: false,
+      portal_org_details_enabled: false,
+      portal_org_members_enabled: false,
+      portal_org_invitations_enabled: false,
+      portal_org_domains_enabled: false,
+      portal_org_sso_enabled: false,
+      portal_org_events_enabled: false,
     },
   });
 
@@ -83,6 +131,14 @@ export const PortalStyles = () => {
       "css",
       get(realmInfo?.attributes, "_providerConfig.assets.portal.css", "")
     );
+
+    visibilityItems.map((pi) => {
+      const pth = pi.replaceAll("_", ".");
+      let val = get(realmInfo?.attributes, `_providerConfig.${pth}`, false);
+      if (val === "true") val = true;
+      if (val === "false") val = false;
+      setValue(pi, val);
+    });
   }
 
   const [fullRealm, setFullRealm] = useState<RealmRepresentation>();
@@ -97,12 +153,12 @@ export const PortalStyles = () => {
     fullObj: RealmRepresentation
   ) => {
     let updatedObj = { ...fullObj };
-    const fullKeyPath = `_providerConfig.assets.portal.${key}`;
+    const fullKeyPath = `_providerConfig.${key}`;
     if (value.length > 0) {
       updatedObj = {
         ...updatedObj,
         attributes: {
-          ...fullRealm!.attributes,
+          ...updatedObj!.attributes,
           [fullKeyPath]: value,
         },
       };
@@ -113,24 +169,56 @@ export const PortalStyles = () => {
     return updatedObj;
   };
 
+  const updatePortalValues = (
+    portalValues: PortalStylesType,
+    fullObj: RealmRepresentation
+  ) => {
+    const portalItems = pick(portalValues, visibilityItems);
+    const newPortalItems = mapKeys(
+      portalItems,
+      (value, key) => `_providerConfig.${key.replaceAll("_", ".")}`
+    );
+
+    return {
+      ...fullObj,
+      attributes: {
+        ...fullObj!.attributes,
+        ...newPortalItems,
+      },
+    };
+  };
+
   const generateUpdatedRealm = () => {
-    const { primaryColor, secondaryColor, backgroundColor, css } = getValues();
+    const {
+      primaryColor,
+      secondaryColor,
+      backgroundColor,
+      css,
+      ...portalValues
+    } = getValues();
     let updatedRealm = {
       ...fullRealm,
     };
 
-    updatedRealm = addOrRemoveItem("primaryColor", primaryColor, updatedRealm);
+    // @ts-ignore
+    updatedRealm = updatePortalValues(portalValues, updatedRealm);
+
     updatedRealm = addOrRemoveItem(
-      "secondaryColor",
+      "assets.portal.primaryColor",
+      primaryColor,
+      updatedRealm
+    );
+    updatedRealm = addOrRemoveItem(
+      "assets.portal.secondaryColor",
       secondaryColor,
       updatedRealm
     );
     updatedRealm = addOrRemoveItem(
-      "backgroundColor",
+      "assets.portal.backgroundColor",
       backgroundColor,
       updatedRealm
     );
-    updatedRealm = addOrRemoveItem("css", css, updatedRealm);
+    updatedRealm = addOrRemoveItem("assets.portal.css", css, updatedRealm);
 
     return updatedRealm;
   };
@@ -138,6 +226,7 @@ export const PortalStyles = () => {
   const save = async () => {
     // update realm with new attributes
     const updatedRealm = generateUpdatedRealm();
+
     // save values
     try {
       await adminClient.realms.update({ realm }, updatedRealm);
@@ -164,6 +253,7 @@ export const PortalStyles = () => {
   return (
     <PageSection variant="light" className="keycloak__form">
       <Form isHorizontal>
+        <h3 className="pf-c-title pf-m-xl">{t("branding")}</h3>
         {/* Primary Color */}
         <FormGroup
           labelIcon={
@@ -307,6 +397,37 @@ export const PortalStyles = () => {
             }
           />
         </FormGroup>
+
+        {/* Visibility  */}
+        <h3 className="pf-c-title pf-m-xl">{t("visibility")}</h3>
+
+        {/*   Profile */}
+        <h4 className="pf-c-title pf-m-lg">{t("profile")}</h4>
+
+        {visiblityProfileItems.map((i) => (
+          <Controller
+            name={i}
+            key={i}
+            control={control}
+            render={({ field, field: { value } }) => (
+              //@ts-ignore
+              <Checkbox id={i} label={t(i)} isChecked={value} {...field} />
+            )}
+          />
+        ))}
+        {/*   Organizations */}
+        <h4 className="pf-c-title pf-m-lg">{t("organizations")}</h4>
+        {visiblityOrganizationItems.map((i) => (
+          <Controller
+            name={i}
+            key={i}
+            control={control}
+            render={({ field, field: { value } }) => (
+              //@ts-ignore
+              <Checkbox id={i} label={t(i)} isChecked={value} {...field} />
+            )}
+          />
+        ))}
 
         <SaveReset name="generalStyles" save={save} reset={reset} isActive />
       </Form>
