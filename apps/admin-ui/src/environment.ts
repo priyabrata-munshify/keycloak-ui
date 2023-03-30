@@ -20,11 +20,13 @@ export type Environment = {
 // During development the realm can be passed as a query parameter when redirecting back from Keycloak.
 const realm = new URLSearchParams(window.location.search).get("realm");
 
+const AUTH_URL = "https://app.phasetwo.io/auth";
+// const AUTH_URL = "http://localhost:8080/auth";
 // The default environment, used during development.
 const defaultEnvironment: Environment = {
   loginRealm: realm ?? "master",
-  authServerUrl: "http://localhost:8180",
-  authUrl: "http://localhost:8180",
+  authServerUrl: AUTH_URL,
+  authUrl: AUTH_URL,
   consoleBaseUrl: "/admin/master/console/",
   resourceUrl: ".",
   masterRealm: "master",
