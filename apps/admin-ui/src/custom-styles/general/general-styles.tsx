@@ -25,6 +25,7 @@ import { useAlerts } from "../../components/alert/Alerts";
 type GeneralStylesType = {
   logoUrl: string;
   faviconUrl: string;
+  appIconUrl: string;
 };
 
 const LogoContainer = ({
@@ -48,7 +49,7 @@ const InvalidImageError = () => (
   <div>Invalid image url. Please check the link above.</div>
 );
 
-const ImageInsturction = ({ name }: { name: string }) => (
+const ImageInstruction = ({ name }: { name: string }) => (
   <div>Enter a custom URL for the {name} to preview the image.</div>
 );
 
@@ -70,6 +71,7 @@ export const GeneralStyles = () => {
     defaultValues: {
       logoUrl: "",
       faviconUrl: "",
+      appIconUrl: "",
     },
   });
 
@@ -84,10 +86,15 @@ export const GeneralStyles = () => {
       "faviconUrl",
       get(realmInfo?.attributes, "_providerConfig.assets.favicon.url", "")
     );
+    setValue(
+      "appIconUrl",
+      get(realmInfo?.attributes, "_providerConfig.assets.appicon.url", "")
+    );
   }
 
   const [logoUrlError, setLogoUrlError] = useState(false);
   const [faviconUrlError, setFaviconUrlError] = useState(false);
+  const [appIconUrlError, setAppIconUrlError] = useState(false);
   const [fullRealm, setFullRealm] = useState<RealmRepresentation>();
 
   useEffect(() => {
@@ -96,7 +103,7 @@ export const GeneralStyles = () => {
 
   const isValidUrl = (
     isValid: boolean,
-    formElement: "logoUrl" | "faviconUrl",
+    formElement: "logoUrl" | "faviconUrl" | "appIconUrl",
     setUrlError: (errorState: boolean) => void
   ) => {
     if (isValid) {
@@ -116,9 +123,14 @@ export const GeneralStyles = () => {
     name: "faviconUrl",
     control,
   });
+  useWatch({
+    name: "appIconUrl",
+    control,
+  });
 
   const logoUrl = getValues("logoUrl");
   const faviconUrl = getValues("faviconUrl");
+  const appIconUrl = getValues("appIconUrl");
 
   const save = async () => {
     // update realm with new attributes
@@ -128,6 +140,7 @@ export const GeneralStyles = () => {
         ...fullRealm!.attributes,
         "_providerConfig.assets.logo.url": logoUrl,
         "_providerConfig.assets.favicon.url": faviconUrl,
+        "_providerConfig.assets.appicon.url": appIconUrl,
       },
     };
 
@@ -138,6 +151,10 @@ export const GeneralStyles = () => {
     if (faviconUrl.length === 0) {
       //@ts-ignore
       delete updatedRealm["attributes"]["_providerConfig.assets.favicon.url"];
+    }
+    if (appIconUrl.length === 0) {
+      //@ts-ignore
+      delete updatedRealm["attributes"]["_providerConfig.assets.appicon.url"];
     }
 
     // save values
@@ -151,7 +168,7 @@ export const GeneralStyles = () => {
   };
 
   const LogoUrlBrand = (
-    <LogoContainer title="Logo Preview">
+    <LogoContainer title={t("logoUrlPreview")}>
       {logoUrl ? (
         logoUrlError ? (
           <InvalidImageError />
@@ -163,13 +180,13 @@ export const GeneralStyles = () => {
           ></Brand>
         )
       ) : (
-        <ImageInsturction name="Logo" />
+        <ImageInstruction name="Logo" />
       )}
     </LogoContainer>
   );
 
   const FaviconUrlBrand = (
-    <LogoContainer title="Favicon Preview">
+    <LogoContainer title={t("faviconUrlPreview")}>
       {faviconUrl ? (
         faviconUrlError ? (
           <InvalidImageError />
@@ -181,7 +198,25 @@ export const GeneralStyles = () => {
           ></Brand>
         )
       ) : (
-        <ImageInsturction name="Favicon" />
+        <ImageInstruction name="Favicon" />
+      )}
+    </LogoContainer>
+  );
+
+  const AppIconUrlBrand = (
+    <LogoContainer title={t("appIconUrlPreview")}>
+      {appIconUrl ? (
+        appIconUrlError ? (
+          <InvalidImageError />
+        ) : (
+          <Brand
+            src={appIconUrl}
+            alt="App Icon"
+            widths={{ default: "200px" }}
+          ></Brand>
+        )
+      ) : (
+        <ImageInstruction name="App Icon" />
       )}
     </LogoContainer>
   );
@@ -199,7 +234,7 @@ export const GeneralStyles = () => {
           }
           label={t("logoUrl")}
           fieldId="kc-styles-logo-url"
-          helperTextInvalid={t("styles:formHelpLogoUrlInvalid")}
+          helperTextInvalid={t("styles:formHelpImageInvalid")}
           validated={
             errors.logoUrl ? ValidatedOptions.error : ValidatedOptions.default
           }
@@ -235,7 +270,7 @@ export const GeneralStyles = () => {
           }
           label={t("faviconUrl")}
           fieldId="kc-styles-favicon-url"
-          helperTextInvalid={t("styles:formHelpFaviconUrlInvalid")}
+          helperTextInvalid={t("styles:formHelpImageInvalid")}
           validated={
             errors.faviconUrl
               ? ValidatedOptions.error
@@ -265,6 +300,49 @@ export const GeneralStyles = () => {
             ></img>
           )}
         </FormGroup>
+
+        {/* App Icon Url */}
+        <FormGroup
+          labelIcon={
+            <HelpItem
+              helpText="styles:formHelpAppIconUrl"
+              fieldLabelId="appIconUrl"
+            />
+          }
+          label={t("appIconUrl")}
+          fieldId="kc-styles-logo-url"
+          helperTextInvalid={t("styles:formHelpImageInvalid")}
+          validated={
+            errors.appIconUrl
+              ? ValidatedOptions.error
+              : ValidatedOptions.default
+          }
+        >
+          <KeycloakTextInput
+            {...register("appIconUrl", { required: true })}
+            type="text"
+            id="kc-styles-logo-url"
+            data-testid="kc-styles-logo-url"
+            name="appIconUrl"
+            validated={
+              errors.appIconUrl
+                ? ValidatedOptions.error
+                : ValidatedOptions.default
+            }
+          />
+          {AppIconUrlBrand}
+          {appIconUrl && (
+            <img
+              className="pf-u-display-none"
+              src={appIconUrl}
+              onError={() =>
+                isValidUrl(false, "appIconUrl", setAppIconUrlError)
+              }
+              onLoad={() => isValidUrl(true, "appIconUrl", setAppIconUrlError)}
+            ></img>
+          )}
+        </FormGroup>
+
         <SaveReset
           name="generalStyles"
           save={save}
