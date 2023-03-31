@@ -410,8 +410,11 @@ export const PortalStyles = () => {
             key={i}
             control={control}
             render={({ field, field: { value } }) => (
-              //@ts-ignore
-              <Checkbox id={i} label={t(i)} isChecked={value} {...field} />
+              <div className="pf-l-flex pf-m-align-items-center">
+                {/* @ts-ignore */}
+                <Checkbox id={i} label={t(i)} isChecked={value} {...field} />
+                <HelpItem helpText={t(`${i}_tooltip`)} fieldLabelId={i} />
+              </div>
             )}
           />
         ))}
@@ -423,8 +426,11 @@ export const PortalStyles = () => {
             key={i}
             control={control}
             render={({ field, field: { value } }) => (
-              //@ts-ignore
-              <Checkbox id={i} label={t(i)} isChecked={value} {...field} />
+              <div className="pf-l-flex pf-m-align-items-center">
+                {/* @ts-ignore */}
+                <Checkbox id={i} label={t(i)} isChecked={value} {...field} />
+                <HelpItem helpText={t(`${i}_tooltip`)} fieldLabelId={i} />
+              </div>
             )}
           />
         ))}
