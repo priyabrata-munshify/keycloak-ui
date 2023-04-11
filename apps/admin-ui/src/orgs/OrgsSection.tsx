@@ -26,7 +26,8 @@ export default function OrgsSection() {
 
   const [key, setKey] = useState(0);
   const refresh = () => setKey(new Date().getTime());
-  const loader = async () => await refreshOrgs();
+  const loader = async (first: number, max: number, search: string) =>
+    await refreshOrgs(first, max, search);
 
   const [createOrgModalVisibility, setCreateOrgModalVisibility] =
     useState(false);
@@ -84,7 +85,9 @@ export default function OrgsSection() {
       <PageSection variant="light" className="pf-u-p-0">
         <KeycloakDataTable
           key={key}
-          isPaginated={false}
+          isPaginated={true}
+          isSearching={true}
+          //@ts-ignore
           loader={loader}
           ariaLabelKey="orgs:orgList"
           searchPlaceholderKey="orgs:searchForOrg"
@@ -99,6 +102,7 @@ export default function OrgsSection() {
               </Button>
             </ToolbarItem>
           }
+          //@ts-ignore
           actions={[
             {
               title: "Delete organization",

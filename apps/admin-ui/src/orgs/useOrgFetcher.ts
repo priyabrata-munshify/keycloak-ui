@@ -106,8 +106,12 @@ export default function useOrgFetcher(realm: string) {
     return await fetchModify(url, body, "PUT");
   }
 
-  async function refreshOrgs() {
-    const resp = await fetchGet(`${baseUrl}/orgs`);
+  async function refreshOrgs(first: number, max: number, search: string) {
+    let query = `first=${first}&max=${max}`;
+    if (search.length > 0) {
+      query = `${query}&search=${search}`;
+    }
+    const resp = await fetchGet(`${baseUrl}/orgs?${query}`);
     return await resp.json();
   }
 
