@@ -106,6 +106,7 @@ export default function OrgsSection() {
           actions={[
             {
               title: "Delete organization",
+              //@ts-ignore
               onRowClick: deleteOrg,
             },
           ]}
