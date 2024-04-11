@@ -106,7 +106,7 @@ export const NewOrgRoleModal = ({
           <Controller
             name="name"
             control={control}
-            rules={{ required: true, pattern: /\b[a-z]+/ }}
+            rules={{ required: true }}
             render={({ field }) => (
               <TextInput
                 id="create-role-name"
